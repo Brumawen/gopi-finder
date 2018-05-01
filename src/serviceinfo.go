@@ -1,6 +1,16 @@
 package gopifinder
 
+// ServiceInfoList holds a list of Services
+type ServiceInfoList struct {
+	Services []ServiceInfo `json:"services"`
+}
+
+// ServiceInfo holds the information about a service provided by
+// a device.
+// The information holds the ServiceName, the Port No on the device and
+// the API url stub of the service controller.
 type ServiceInfo struct {
-	Service string
-	ApiUrl  string
+	ServiceName string `json:"serviceName"`
+	PortNo      int    `json:"portNo"`
+	ApiStub     string `json:"apiStub"`
 }
