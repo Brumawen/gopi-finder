@@ -1,97 +1,114 @@
 package gopifinder
 
-import gopitools "github.com/brumawen/gopi-tools/src"
-import "log"
-import "sync"
-import "net/http"
-import "io/ioutil"
-import "encoding/json"
-import "time"
+import (
+	"encoding/json"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"sync"
+	"time"
+)
 
 // Finder will search for and hold a list of devices on the local network
 // and the services that each device provides.
 type Finder struct {
 	Devices []DeviceInfo
+
+	wg            sync.WaitGroup
+	deviceChan    chan DeviceInfo
+	isInitialized bool
+}
+
+// Init initializes the struct ready to be used.
+func (f *Finder) Init() {
+	if !f.isInitialized {
+		// Initialize values
+		f.wg = sync.WaitGroup{}
+		f.deviceChan = make(chan DeviceInfo)
+		f.Devices = []DeviceInfo{}
+
+		f.isInitialized = true
+
+		// Start a function that will append
+		go func() {
+			log.Println("Starting Checker.")
+			for d := range f.deviceChan {
+				if d.MachineID == "" {
+					log.Println("Got close device")
+					break
+				}
+				// Add device
+				f.Devices = append(f.Devices, d)
+			}
+			log.Println("Ending Checker.")
+		}()
+	}
+}
+
+// Close cleans up the resources being held by the struct.
+func (f *Finder) Close() {
+	if f.isInitialized {
+		f.deviceChan <- DeviceInfo{}
+		f.isInitialized = false
+	}
 }
 
 // FindDevices searches the local LANs for devices.
 // This will initiate a LAN wide search for each local IP address associated with
 // the current device.
-func (f *Finder) FindDevices(includeMe bool) error {
+func (f *Finder) FindDevices() ([]DeviceInfo, error) {
+	if !f.isInitialized {
+		f.Init()
+	}
+
 	log.Println("FindDevices: Starting search...")
-	if ipLst, err := gopitools.GetLocalIPAddresses(); err != nil {
+	if ipLst, err := GetLocalIPAddresses(); err != nil {
 		log.Println("FindDevices: Error getting Local IP Addresses.", err)
-		return err
+		return nil, err
 	} else {
-		myDevices := []DeviceInfo{}
-		devices := make(chan DeviceInfo)
-		wg := sync.WaitGroup{}
+		f.wg.Wait()
+		f.wg.Add(1)
+
+		// Clear array
+		f.Devices = []DeviceInfo{}
+
 		for _, ip := range ipLst {
 			log.Println("FindDevices: Searching LAN for IP Address", ip)
-			if includeMe {
-				// Get the values for mwa
-				wg.Add(1)
-				go f.pingIPAddress(ip, &wg, devices)
-			}
-			if scanList, err := gopitools.GetPotentialAddresses(ip); err != nil {
+			if scanList, err := GetPotentialAddresses(ip); err != nil {
 				log.Println("FindDevices: Error getting potential IP scan list.", err)
 			} else {
-				//scanList = scanList[:15]
 				for _, scanIp := range scanList {
-					wg.Add(1)
-					go f.pingIPAddress(scanIp, &wg, devices)
+					f.wg.Add(1)
+					go f.pingIPAddress(scanIp)
 				}
 			}
 		}
 
-		go func() {
-			for d := range devices {
-				myDevices = append(myDevices, d)
-			}
-		}()
-
 		// Wait for everything to complete
-		wg.Wait()
+		f.wg.Done()
+		f.wg.Wait()
 
-		f.Devices = myDevices
 		log.Println("FindDevices: Completed search.")
 	}
 
-	return nil
+	return f.Devices, nil
 }
 
-// GetFirstService returns if a device in the list provides the specified service
-// and, if so, also returns the Service information.
-func (f *Finder) GetFirstService(service string) (bool, *ServiceInfo) {
-	if f.Devices == nil {
-		err := f.FindDevices(true)
-		if err != nil {
-			return false, nil
-		}
-	}
-	if f.Devices != nil {
-		for _, i := range f.Devices {
-			if b, s := i.GetService(service); b {
-				return true, s
-			}
-		}
-	}
-	return false, nil
-}
-
-func (f *Finder) pingIPAddress(ip string, wg *sync.WaitGroup, c chan DeviceInfo) {
-	defer wg.Done()
+func (f *Finder) pingIPAddress(ip string) {
+	defer f.wg.Done()
 
 	//log.Println("Checking", ip)
 	timeout := time.Duration(4 * time.Second)
 	client := http.Client{Timeout: timeout}
-	if response, err := client.Get("http://" + ip + ":20502/GetDeviceInfo"); err == nil {
+	if response, err := client.Get("http://" + ip + ":20502/online"); err == nil {
 		defer response.Body.Close()
 		if contents, err := ioutil.ReadAll(response.Body); err == nil {
+			log.Println("Received from", ip, "'", string(contents), "'")
 			var d DeviceInfo
+			log.Println(string(contents))
 			if err := json.Unmarshal(contents, &d); err == nil {
 				log.Println("FindDevices: Found device ", d.HostName, d.IPAddress)
-				c <- d
+				f.deviceChan <- d
 			} else {
 				log.Println("FindDevices: Error deserializing json string.", err)
 			}

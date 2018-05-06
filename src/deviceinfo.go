@@ -2,9 +2,7 @@ package gopifinder
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -12,32 +10,16 @@ import (
 )
 
 // DeviceInfo holds the information about a device.
-// This information details the services provided by the device.
 type DeviceInfo struct {
-	MachineID string        `json:"machineID"`
-	IPAddress []string      `json:"ipAddress"`
-	HostName  string        `json:"hostName"`
-	Services  []ServiceInfo `json:"services"`
+	MachineID string   `json:"machineID"`
+	HostName  string   `json:"hostName"`
+	IPAddress []string `json:"ipAddress"`
 }
 
 // NewDeviceInfo creates a new DeviceInfo struct and populates it with the values
 // for the current device
 func NewDeviceInfo() DeviceInfo {
 	d := DeviceInfo{}
-
-	//get hostname
-	if out, err := exec.Command("hostname").Output(); err != nil {
-		log.Println("DeviceInfo: Could not get HostName.", err)
-	} else {
-		d.HostName = strings.TrimSpace(string(out))
-	}
-
-	// Get the IP addresses
-	if ip, err := gopitools.GetLocalIPAddresses(); err != nil {
-		log.Println("DeviceInfo: Could not get IP addresses.", err)
-	} else {
-		d.IPAddress = ip
-	}
 
 	// Get the Machine ID
 	if txt, err := gopitools.ReadAllText("/etc/machine-id"); err != nil {
@@ -46,39 +28,36 @@ func NewDeviceInfo() DeviceInfo {
 		d.MachineID = txt
 	}
 
-	// Get the services
-	d.Services = getServiceInfo()
+	// Get the Hostname
+	if out, err := exec.Command("hostname").Output(); err != nil {
+		log.Println("DeviceInfo: Could not get HostName.", err)
+	} else {
+		d.HostName = strings.TrimSpace(string(out))
+	}
+
+	// Get the IP addresses
+	if ip, err := GetLocalIPAddresses(); err != nil {
+		log.Println("DeviceInfo: Could not get IP addresses.", err)
+	} else {
+		d.IPAddress = ip
+	}
 
 	return d
 }
 
-func getServiceInfo() []ServiceInfo {
-	fn := "serviceinfo.json"
-	if _, err := os.Stat(fn); os.IsNotExist(err) {
-		log.Println("serviceinfo.json file is missing.")
-		return []ServiceInfo{}
-	}
-	if data, err := ioutil.ReadFile(fn); err != nil {
-		log.Println("DeviceInfo: Error reading serviceingo.json file.")
-		return []ServiceInfo{}
+func (d *DeviceInfo) AsJson() (string, error) {
+	if b, err := json.Marshal(d); err != nil {
+		return "", err
 	} else {
-		var si ServiceInfoList
-		if err := json.Unmarshal(data, &si); err != nil {
-			log.Println("DeviceInfo: Error deserializing serviceinfo.json file data.")
-			return []ServiceInfo{}
-		} else {
-			return si.Services
-		}
+		return string(b), nil
 	}
 }
 
-// GetService returns if the device provides the specified service and, if so,
-// also returns the Service information
-func (d *DeviceInfo) GetService(service string) (bool, *ServiceInfo) {
-	for _, s := range d.Services {
-		if s.ServiceName == service {
-			return true, &s
-		}
+func DeviceInfoFromJson(b []byte) (DeviceInfo, error) {
+	var d DeviceInfo
+	err := json.Unmarshal(b, &d)
+	if err != nil {
+		return d, err
 	}
-	return false, nil
+	return d, nil
 }

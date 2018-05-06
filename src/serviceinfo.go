@@ -11,6 +11,7 @@ type ServiceInfoList struct {
 // the API url stub of the service controller.
 type ServiceInfo struct {
 	ServiceName string `json:"serviceName"`
+	Host        string `json:"host"`
 	PortNo      int    `json:"portNo"`
 	ApiStub     string `json:"apiStub"`
 }
