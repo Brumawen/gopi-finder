@@ -1,8 +1,41 @@
 package gopifinder
 
 import (
+	"io/ioutil"
+	"log"
 	"net"
+	"os"
+
+	uuid "github.com/satori/go.uuid"
 )
+
+// GetClientID returns the unique client id (UUID) for this application.
+func GetClientID() (string, error) {
+	fn := "clientid" // File Name
+	if _, err := os.Stat(fn); os.IsNotExist(err) {
+		// File does not exists, create a new uuid
+		uuid := uuid.NewV4().String()
+		log.Println("Created new Client ID.", uuid)
+		err = ioutil.WriteFile(fn, []byte(uuid), 0666)
+		if err != nil {
+			return uuid, err
+		}
+		return uuid, nil
+	}
+	// Read the uuid from the file
+	data, err := ioutil.ReadFile(fn)
+	if err != nil {
+		log.Println("Failed to read the Client ID file. Attempting to recreate it.", err)
+		uuid := uuid.NewV4().String()
+		log.Println("Created new Client ID.", uuid)
+		err = ioutil.WriteFile(fn, []byte(uuid), 0666)
+		if err != nil {
+			return uuid, err
+		}
+		return uuid, nil
+	}
+	return string(data), nil
+}
 
 // GetLocalIPAddresses gets a list of valid IPv4 addresses for the local machine
 func GetLocalIPAddresses() ([]string, error) {

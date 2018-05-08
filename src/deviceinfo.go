@@ -2,11 +2,9 @@ package gopifinder
 
 import (
 	"encoding/json"
-	"log"
+	"errors"
 	"os/exec"
 	"strings"
-
-	gopitools "github.com/brumawen/gopi-tools/src"
 )
 
 // DeviceInfo holds the information about a device.
@@ -14,46 +12,64 @@ type DeviceInfo struct {
 	MachineID string   `json:"machineID"`
 	HostName  string   `json:"hostName"`
 	IPAddress []string `json:"ipAddress"`
+	OS        string   `json:"os"`
 }
 
 // NewDeviceInfo creates a new DeviceInfo struct and populates it with the values
 // for the current device
-func NewDeviceInfo() DeviceInfo {
+func NewDeviceInfo() (DeviceInfo, error) {
 	d := DeviceInfo{}
 
+	// Get the operating system
+	out, err := exec.Command("uname").Output()
+	if err != nil {
+		return d, errors.New("Error getting device Operating System. " + err.Error())
+	}
+	d.OS = strings.TrimSpace(string(out))
+
+	// Get the Host Name
+	out, err = exec.Command("hostname").Output()
+	if err != nil {
+		return d, errors.New("Error getting device HostName. " + err.Error())
+	}
+	d.HostName = strings.TrimSpace(string(out))
+
 	// Get the Machine ID
-	if txt, err := gopitools.ReadAllText("/etc/machine-id"); err != nil {
-		log.Println("DeviceInfo: Could not get Machine ID")
+	if strings.ToLower(d.OS) == "linux" {
+		txt, err := ReadAllText("/etc/machine-id")
+		if err != nil {
+			return d, errors.New("Error getting device Machine-ID. " + err.Error())
+		}
+		d.MachineID = txt
 	} else {
+		txt, err := GetClientID()
+		if err != nil {
+			return d, errors.New("Error getting device Client-ID. " + err.Error())
+		}
 		d.MachineID = txt
 	}
 
-	// Get the Hostname
-	if out, err := exec.Command("hostname").Output(); err != nil {
-		log.Println("DeviceInfo: Could not get HostName.", err)
-	} else {
-		d.HostName = strings.TrimSpace(string(out))
-	}
-
 	// Get the IP addresses
-	if ip, err := GetLocalIPAddresses(); err != nil {
-		log.Println("DeviceInfo: Could not get IP addresses.", err)
-	} else {
-		d.IPAddress = ip
+	ip, err := GetLocalIPAddresses()
+	if err != nil {
+		return d, errors.New("Error getting device IP addresses. " + err.Error())
 	}
+	d.IPAddress = ip
 
-	return d
+	return d, nil
 }
 
-func (d *DeviceInfo) AsJson() (string, error) {
-	if b, err := json.Marshal(d); err != nil {
+// AsJSON converts the current struct information to a JSON formatted string
+func (d *DeviceInfo) AsJSON() (string, error) {
+	b, err := json.Marshal(d)
+	if err != nil {
 		return "", err
-	} else {
-		return string(b), nil
 	}
+	return string(b), nil
 }
 
-func DeviceInfoFromJson(b []byte) (DeviceInfo, error) {
+// DeviceInfoFromJSON generates a DeviceInfo struct from the JSON formatted string
+func DeviceInfoFromJSON(b []byte) (DeviceInfo, error) {
 	var d DeviceInfo
 	err := json.Unmarshal(b, &d)
 	if err != nil {

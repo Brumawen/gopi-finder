@@ -2,6 +2,7 @@ package gopifinder
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,7 +13,9 @@ import (
 // Finder will search for and hold a list of devices on the local network
 // and the services that each device provides.
 type Finder struct {
-	Devices []DeviceInfo
+	Devices    []DeviceInfo
+	VerboseLog bool
+	Timeout    int
 
 	wg            sync.WaitGroup
 	deviceChan    chan DeviceInfo
@@ -27,20 +30,39 @@ func (f *Finder) Init() {
 		f.deviceChan = make(chan DeviceInfo)
 		f.Devices = []DeviceInfo{}
 
+		if f.Timeout <= 0 {
+			f.Timeout = 2
+		}
+
 		f.isInitialized = true
 
 		// Start a function that will append
 		go func() {
-			log.Println("Starting Checker.")
+			if f.VerboseLog {
+				log.Println("Starting channel hecker.")
+			}
 			for d := range f.deviceChan {
 				if d.MachineID == "" {
-					log.Println("Got close device")
+					if f.VerboseLog {
+						log.Println("Stopping channel checker.")
+					}
 					break
 				}
-				// Add device
-				f.Devices = append(f.Devices, d)
+				found := false
+				for _, i := range f.Devices {
+					if i.MachineID == d.MachineID {
+						found = true
+						break
+					}
+				}
+				if !found {
+					// Add device
+					f.Devices = append(f.Devices, d)
+				}
 			}
-			log.Println("Ending Checker.")
+			if f.VerboseLog {
+				log.Println("Channel checker stopped.")
+			}
 		}()
 	}
 }
@@ -61,33 +83,38 @@ func (f *Finder) FindDevices() ([]DeviceInfo, error) {
 		f.Init()
 	}
 
-	log.Println("FindDevices: Starting search...")
-	if ipLst, err := GetLocalIPAddresses(); err != nil {
-		log.Println("FindDevices: Error getting Local IP Addresses.", err)
-		return nil, err
-	} else {
-		f.wg.Wait()
-		f.wg.Add(1)
+	if f.VerboseLog {
+		log.Println("FindDevices: Starting search...")
+	}
+	ipLst, err := GetLocalIPAddresses()
+	if err != nil {
+		return nil, errors.New("Error getting Local IP Addresses. " + err.Error())
+	}
+	f.wg.Wait()
+	f.wg.Add(1)
 
-		// Clear array
-		f.Devices = []DeviceInfo{}
+	// Clear array
+	f.Devices = []DeviceInfo{}
 
-		for _, ip := range ipLst {
+	for _, ip := range ipLst {
+		if f.VerboseLog {
 			log.Println("FindDevices: Searching LAN for IP Address", ip)
-			if scanList, err := GetPotentialAddresses(ip); err != nil {
-				log.Println("FindDevices: Error getting potential IP scan list.", err)
-			} else {
-				for _, scanIp := range scanList {
-					f.wg.Add(1)
-					go f.pingIPAddress(scanIp)
-				}
-			}
 		}
+		scanList, err := GetPotentialAddresses(ip)
+		if err != nil {
+			return nil, errors.New("Error getting potential IP scan list. " + err.Error())
+		}
+		for _, scanIP := range scanList {
+			f.wg.Add(1)
+			go f.pingIPAddress(scanIP)
+		}
+	}
 
-		// Wait for everything to complete
-		f.wg.Done()
-		f.wg.Wait()
+	// Wait for everything to complete
+	f.wg.Done()
+	f.wg.Wait()
 
+	if f.VerboseLog {
 		log.Println("FindDevices: Completed search.")
 	}
 
@@ -97,22 +124,23 @@ func (f *Finder) FindDevices() ([]DeviceInfo, error) {
 func (f *Finder) pingIPAddress(ip string) {
 	defer f.wg.Done()
 
-	//log.Println("Checking", ip)
-	timeout := time.Duration(4 * time.Second)
+	if f.VerboseLog {
+		log.Println("Checking", ip)
+	}
+	timeout := time.Duration(time.Duration(f.Timeout) * time.Second)
 	client := http.Client{Timeout: timeout}
 	if response, err := client.Get("http://" + ip + ":20502/online"); err == nil {
 		defer response.Body.Close()
 		if contents, err := ioutil.ReadAll(response.Body); err == nil {
-			log.Println("Received from", ip, "'", string(contents), "'")
 			var d DeviceInfo
-			log.Println(string(contents))
 			if err := json.Unmarshal(contents, &d); err == nil {
-				log.Println("FindDevices: Found device ", d.HostName, d.IPAddress)
 				f.deviceChan <- d
 			} else {
-				log.Println("FindDevices: Error deserializing json string.", err)
+				log.Println("Error deserializing json string.", contents, err)
 			}
 		}
 	}
-	//log.Println("Completed", ip)
+	if f.VerboseLog {
+		log.Println("Completed", ip)
+	}
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"io/ioutil"
-	"log"
 	"net/http"
 
 	"github.com/brumawen/gopi-finder/src"
@@ -27,17 +26,13 @@ func (c *OnlineController) AddOnlineController(router *mux.Router) {
 
 func (c *OnlineController) handleOnline(w http.ResponseWriter, r *http.Request) {
 	if r.ContentLength != 0 {
-		log.Println("Reading Body")
 		if b, err := ioutil.ReadAll(r.Body); err != nil {
-			log.Println("EEEEK", err)
 			http.Error(w, "Cannot read request body. "+err.Error(), 500)
 			return
 		} else {
-			log.Println("Body read OK")
 			if b != nil && len(b) != 0 {
-				log.Println("Getting Json")
 				// Get the DeviceInfo
-				if srcInfo, err := gopifinder.DeviceInfoFromJson(b); err != nil {
+				if srcInfo, err := gopifinder.DeviceInfoFromJSON(b); err != nil {
 					http.Error(w, "Error deserializing DeviceInfo. "+err.Error(), 500)
 					return
 				} else {
@@ -49,11 +44,15 @@ func (c *OnlineController) handleOnline(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Get this server's deviceinfo
-	myInfo := gopifinder.NewDeviceInfo()
-	if output, err := myInfo.AsJson(); err != nil {
-		http.Error(w, "Error serializing DeviceInfo. "+err.Error(), 500)
+	myInfo, err := gopifinder.NewDeviceInfo()
+	if err != nil {
+		http.Error(w, "Error getting DeviceInfo. "+err.Error(), 500)
 	} else {
-		w.Header().Set("content-type", "application/json")
-		w.Write([]byte(output))
+		if output, err := myInfo.AsJSON(); err != nil {
+			http.Error(w, "Error serializing DeviceInfo. "+err.Error(), 500)
+		} else {
+			w.Header().Set("content-type", "application/json")
+			w.Write([]byte(output))
+		}
 	}
 }

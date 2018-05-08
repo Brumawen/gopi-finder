@@ -13,5 +13,5 @@ type ServiceInfo struct {
 	ServiceName string `json:"serviceName"`
 	Host        string `json:"host"`
 	PortNo      int    `json:"portNo"`
-	ApiStub     string `json:"apiStub"`
+	APIStub     string `json:"apiStub"`
 }
