@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/brumawen/gopi-finder/src"
+
 	"github.com/gorilla/mux"
 )
 
@@ -23,10 +25,19 @@ func main() {
 		VerboseLogging: *verbose,
 		Timeout:        *timeout,
 	}
+	if info, err := gopifinder.NewDeviceInfo(); err != nil {
+		log.Println("Error getting Device Information", err.Error())
+	} else {
+		s.MyDevice = info
+	}
 
+	// Create the router
 	router := mux.NewRouter().StrictSlash(true)
+	// Add the controllers
 	o := OnlineController{Srv: s}
 	o.AddOnlineController(router)
-
+	d := DeviceController{Srv: s}
+	d.AddDeviceController(router)
+	// Start the server
 	log.Fatal(http.ListenAndServe(fmt.Sprintf("%v:%d", s.Host, s.PortNo), router))
 }

@@ -5,20 +5,22 @@ import (
 	"errors"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // DeviceInfo holds the information about a device.
 type DeviceInfo struct {
-	MachineID string   `json:"machineID"`
-	HostName  string   `json:"hostName"`
-	IPAddress []string `json:"ipAddress"`
-	OS        string   `json:"os"`
+	MachineID string    `json:"machineID"`
+	HostName  string    `json:"hostName"`
+	IPAddress []string  `json:"ipAddress"`
+	OS        string    `json:"os"`
+	Created   time.Time `json:"created"`
 }
 
 // NewDeviceInfo creates a new DeviceInfo struct and populates it with the values
 // for the current device
 func NewDeviceInfo() (DeviceInfo, error) {
-	d := DeviceInfo{}
+	d := DeviceInfo{Created: time.Now()}
 
 	// Get the operating system
 	out, err := exec.Command("uname").Output()
