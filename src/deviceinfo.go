@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os/exec"
 	"strings"
 	"time"
@@ -78,8 +80,35 @@ func (d *DeviceInfo) CreateService(serviceName string) ServiceInfo {
 	}
 }
 
-// AsJSON converts the current struct information to a JSON formatted string
-func (d *DeviceInfo) AsJSON() (string, error) {
+// ReadFromRequest will read the request body and deserialize it into the entity values
+func (d *DeviceInfo) ReadFromRequest(r *http.Request) error {
+	if r.ContentLength != 0 {
+		b, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return errors.New("Cannot read request body. " + err.Error())
+		}
+		if b != nil && len(b) != 0 {
+			if err := json.Unmarshal(b, &d); err != nil {
+				return errors.New("Error deserializing DeviceInfo. " + err.Error())
+			}
+		}
+	}
+	return nil
+}
+
+// WriteToResponse will serialize the entity and write it to the http response
+func (d *DeviceInfo) WriteToResponse(w http.ResponseWriter) error {
+	b, err := json.Marshal(d)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("content-type", "application/json")
+	w.Write(b)
+	return nil
+}
+
+// Serialize serializes the entity and returns the serialized string
+func (d *DeviceInfo) Serialize() (string, error) {
 	b, err := json.Marshal(d)
 	if err != nil {
 		return "", err
@@ -87,12 +116,11 @@ func (d *DeviceInfo) AsJSON() (string, error) {
 	return string(b), nil
 }
 
-// DeviceInfoFromJSON generates a DeviceInfo struct from the JSON formatted string
-func DeviceInfoFromJSON(b []byte) (DeviceInfo, error) {
-	var d DeviceInfo
-	err := json.Unmarshal(b, &d)
+// Deserialize deserializes the specified string into the entity values
+func (d *DeviceInfo) Deserialize(s string) error {
+	err := json.Unmarshal([]byte(s), &d)
 	if err != nil {
-		return d, err
+		return err
 	}
-	return d, nil
+	return nil
 }

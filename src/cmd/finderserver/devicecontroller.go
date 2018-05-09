@@ -9,11 +9,12 @@ import (
 
 // DeviceController handles the Web Methods used to handle devices.
 type DeviceController struct {
-	Srv Service
+	Srv *Server
 }
 
-// AddDeviceController adds the routes associated with the controller to the router.
-func (c *DeviceController) AddDeviceController(router *mux.Router) {
+// AddController adds the routes associated with the controller to the router.
+func (c *DeviceController) AddController(router *mux.Router, s *Server) {
+	c.Srv = s
 	router.Methods("GET").Path("/device/get").Name("GetDevices").
 		Handler(Logger(http.HandlerFunc(c.handleGetDevices)))
 	router.Methods("DELETE").Path("/device/remove/{id}").Name("RemoveDevice").

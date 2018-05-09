@@ -2,11 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
-	"net/http"
-
-	"github.com/brumawen/gopi-finder/src"
 
 	"github.com/gorilla/mux"
 )
@@ -19,25 +15,20 @@ func main() {
 
 	flag.Parse()
 
-	s := Service{
+	// Create a new server
+	s := Server{
 		Host:           *host,
 		PortNo:         *port,
 		VerboseLogging: *verbose,
 		Timeout:        *timeout,
-	}
-	if info, err := gopifinder.NewDeviceInfo(); err != nil {
-		log.Println("Error getting Device Information", err.Error())
-	} else {
-		s.MyDevice = info
+		Router:         mux.NewRouter().StrictSlash(true),
 	}
 
-	// Create the router
-	router := mux.NewRouter().StrictSlash(true)
 	// Add the controllers
-	o := OnlineController{Srv: s}
-	o.AddOnlineController(router)
-	d := DeviceController{Srv: s}
-	d.AddDeviceController(router)
+	s.AddController(new(OnlineController))
+	s.AddController(new(DeviceController))
+	s.AddController(new(ServiceController))
+
 	// Start the server
-	log.Fatal(http.ListenAndServe(fmt.Sprintf("%v:%d", s.Host, s.PortNo), router))
+	log.Fatal(s.ListenAndServe())
 }

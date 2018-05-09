@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/brumawen/gopi-finder/src"
+	"github.com/gorilla/mux"
 )
 
-// Service defines a struct that is passed to all controllers.
-type Service struct {
+// Server defines the Web Server.
+type Server struct {
 	Host           string
 	PortNo         int
 	VerboseLogging bool
@@ -15,14 +18,27 @@ type Service struct {
 	Devices        []gopifinder.DeviceInfo
 	MyDevice       gopifinder.DeviceInfo
 	Services       []gopifinder.ServiceInfo
+	Router         *mux.Router
+}
+
+// AddController adds the specified web service controller to the Router
+func (s *Server) AddController(c Controller) {
+	c.AddController(s.Router, s)
+}
+
+// ListenAndServe starts the server
+func (s *Server) ListenAndServe() error {
+	if info, err := gopifinder.NewDeviceInfo(); err != nil {
+		log.Println("Error getting Device Information", err.Error())
+	} else {
+		s.MyDevice = info
+		s.AddDevice(info)
+	}
+	return http.ListenAndServe(fmt.Sprintf("%v:%d", s.Host, s.PortNo), s.Router)
 }
 
 // AddDevice will add the specified DeviceInfo object to the Devices list
-func (s *Service) AddDevice(d gopifinder.DeviceInfo) {
-	if d.MachineID == s.MyDevice.MachineID {
-		// This is us
-		return
-	}
+func (s *Server) AddDevice(d gopifinder.DeviceInfo) {
 	if s.VerboseLogging {
 		log.Println("Registering device:", d.HostName, d.MachineID)
 	}
@@ -39,7 +55,7 @@ func (s *Service) AddDevice(d gopifinder.DeviceInfo) {
 }
 
 // RemoveDevice removes the device with the specified ID from the Devices list.
-func (s *Service) RemoveDevice(id string) {
+func (s *Server) RemoveDevice(id string) {
 	if id == "" {
 		return
 	}
@@ -56,7 +72,7 @@ func (s *Service) RemoveDevice(id string) {
 }
 
 // AddService adds the specified ServiceInfo object to the Service list
-func (s *Service) AddService(v gopifinder.ServiceInfo) {
+func (s *Server) AddService(v gopifinder.ServiceInfo) {
 	for _, i := range s.Services {
 		if i.MachineID == v.MachineID && i.ServiceName == v.ServiceName {
 			// Update the Service
@@ -71,8 +87,8 @@ func (s *Service) AddService(v gopifinder.ServiceInfo) {
 	}
 }
 
-// RemoveDevice removes the service for the specified MachineID from the Services list.
-func (s *Service) RemoveService(machineID string, serviceName string) {
+// RemoveService removes the service for the specified MachineID from the Services list.
+func (s *Server) RemoveService(machineID string, serviceName string) {
 	if machineID == "" || serviceName == "" {
 		return
 	}
@@ -89,7 +105,7 @@ func (s *Service) RemoveService(machineID string, serviceName string) {
 
 // RemoveAllServices removes all services associated with the specified MachineID
 // from the Services list
-func (s *Service) RemoveAllServices(machineID string) {
+func (s *Server) RemoveAllServices(machineID string) {
 	if machineID == "" {
 		return
 	}

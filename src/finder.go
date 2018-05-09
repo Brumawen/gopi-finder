@@ -10,8 +10,7 @@ import (
 	"time"
 )
 
-// Finder will search for and hold a list of devices on the local network
-// and the services that each device provides.
+// Finder will search for and hold a list of devices available on the local network.
 type Finder struct {
 	Devices    []DeviceInfo
 	VerboseLog bool
@@ -119,6 +118,11 @@ func (f *Finder) FindDevices() ([]DeviceInfo, error) {
 	}
 
 	return f.Devices, nil
+}
+
+func (f *Finder) SearchForServices(name []string) ([]ServiceInfo, error) {
+	// First contact a device to get the list of devices
+	return []ServiceInfo{}, nil
 }
 
 func (f *Finder) pingIPAddress(ip string) {
