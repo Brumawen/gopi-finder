@@ -1,6 +1,7 @@
 package gopifinder
 
 import (
+	"log"
 	"testing"
 )
 
@@ -21,4 +22,5 @@ func TestCanCreateDeviceInfo(t *testing.T) {
 	if d.OS == "" {
 		t.Error("Operating System was not retrieved.")
 	}
+	log.Println(d)
 }

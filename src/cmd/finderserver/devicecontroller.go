@@ -14,8 +14,10 @@ type DeviceController struct {
 
 // AddDeviceController adds the routes associated with the controller to the router.
 func (c *DeviceController) AddDeviceController(router *mux.Router) {
-	router.Methods("GET").Path("/device/getdevices").Name("GetDevices").Handler(Logger(http.HandlerFunc(c.handleGetDevices)))
-	router.Methods("DELETE").Path("/device/remove/{id}").Name("RemoveDevice").Handler(Logger(http.HandlerFunc(c.handleRemoveDevice)))
+	router.Methods("GET").Path("/device/get").Name("GetDevices").
+		Handler(Logger(http.HandlerFunc(c.handleGetDevices)))
+	router.Methods("DELETE").Path("/device/remove/{id}").Name("RemoveDevice").
+		Handler(Logger(http.HandlerFunc(c.handleRemoveDevice)))
 }
 
 // handleGetDevices handles the /device/getdevices web method call

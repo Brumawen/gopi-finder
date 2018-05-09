@@ -1,8 +1,10 @@
 package gopifinder
 
 import (
+	"crypto/sha1"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os/exec"
 	"strings"
 	"time"
@@ -50,6 +52,11 @@ func NewDeviceInfo() (DeviceInfo, error) {
 		}
 		d.MachineID = txt
 	}
+	if d.MachineID != "" {
+		// Generate the SHA1 hash of the Machine ID
+		sum := sha1.Sum([]byte(d.MachineID))
+		d.MachineID = fmt.Sprintf("%x", sum)
+	}
 
 	// Get the IP addresses
 	ip, err := GetLocalIPAddresses()
@@ -59,6 +66,16 @@ func NewDeviceInfo() (DeviceInfo, error) {
 	d.IPAddress = ip
 
 	return d, nil
+}
+
+// CreateService creates and returns a new ServiceInfo struct object for the current device.
+func (d *DeviceInfo) CreateService(serviceName string) ServiceInfo {
+	return ServiceInfo{
+		ServiceName: serviceName,
+		MachineID:   d.MachineID,
+		Host:        d.HostName,
+		IPAddress:   d.IPAddress[0],
+	}
 }
 
 // AsJSON converts the current struct information to a JSON formatted string
