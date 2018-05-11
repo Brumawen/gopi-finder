@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,6 +20,7 @@ type Server struct {
 	MyDevice       gopifinder.DeviceInfo
 	Services       []gopifinder.ServiceInfo
 	Router         *mux.Router
+	Finder         gopifinder.Finder
 }
 
 // AddController adds the specified web service controller to the Router
@@ -28,8 +30,13 @@ func (s *Server) AddController(c Controller) {
 
 // ListenAndServe starts the server
 func (s *Server) ListenAndServe() error {
+	if d, err := s.Finder.FindDevices(); err != nil {
+		log.Print("Error finding devices.", err.Error())
+	} else {
+		s.Devices = d
+	}
 	if info, err := gopifinder.NewDeviceInfo(); err != nil {
-		log.Println("Error getting Device Information", err.Error())
+		log.Println("Error getting Device Information.", err.Error())
 	} else {
 		s.MyDevice = info
 		s.AddDevice(info)
@@ -72,19 +79,29 @@ func (s *Server) RemoveDevice(id string) {
 }
 
 // AddService adds the specified ServiceInfo object to the Service list
-func (s *Server) AddService(v gopifinder.ServiceInfo) {
+func (s *Server) AddService(v gopifinder.ServiceInfo) error {
+	if v.MachineID == "" || v.ServiceName == "" {
+		return errors.New("Missing Service ID or Name.")
+	}
 	for _, i := range s.Services {
 		if i.MachineID == v.MachineID && i.ServiceName == v.ServiceName {
 			// Update the Service
+			if s.VerboseLogging {
+				log.Println("Updated ServiceName", i.ServiceName, "for MachineID", i.MachineID)
+			}
 			i.PortNo = v.PortNo
 			i.Host = v.Host
 			i.IPAddress = v.IPAddress
 			i.APIStub = v.APIStub
-			return
+			return nil
 		}
-		// Add the service
-		s.Services = append(s.Services, v)
 	}
+	// Add the service
+	if s.VerboseLogging {
+		log.Println("Added ServiceName", v.ServiceName, "for MachineID", v.MachineID)
+	}
+	s.Services = append(s.Services, v)
+	return nil
 }
 
 // RemoveService removes the service for the specified MachineID from the Services list.
@@ -92,11 +109,11 @@ func (s *Server) RemoveService(machineID string, serviceName string) {
 	if machineID == "" || serviceName == "" {
 		return
 	}
-	if s.VerboseLogging {
-		log.Println("Removing ServiceName", serviceName, "for MachineID", machineID)
-	}
 	for n, i := range s.Services {
 		if i.MachineID == machineID && i.ServiceName == serviceName {
+			if s.VerboseLogging {
+				log.Println("Removed ServiceName", serviceName, "for MachineID", machineID)
+			}
 			s.Services = append(s.Services[:n], s.Services[n+1:]...)
 			return
 		}

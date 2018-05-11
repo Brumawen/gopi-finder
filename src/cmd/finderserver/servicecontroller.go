@@ -1,7 +1,11 @@
 package main
 
-import "github.com/gorilla/mux"
-import "net/http"
+import (
+	"net/http"
+
+	gopifinder "github.com/brumawen/gopi-finder/src"
+	"github.com/gorilla/mux"
+)
 
 // ServiceController handles the Web Methods used to process service discovery.
 type ServiceController struct {
@@ -19,29 +23,66 @@ func (c *ServiceController) AddController(router *mux.Router, s *Server) {
 		Handler(Logger(http.HandlerFunc(c.handleRemoveAll)))
 	router.Methods("GET").Path("/service/get").Name("GetLocalServices").
 		Handler(Logger(http.HandlerFunc(c.handleGetLocal)))
-	router.Methods("GET").Path("/service/search/{name}").Name("Search").
+	router.Methods("GET").Path("/service/search").Name("Search").
 		Handler(Logger(http.HandlerFunc(c.handleSearch)))
 
 }
 
 func (c *ServiceController) handleAddService(w http.ResponseWriter, r *http.Request) {
-
+	if r.ContentLength != 0 {
+		// Get the ServiceInfo List from the content
+		l := gopifinder.ServiceInfoList{}
+		if err := l.ReadFrom(r.Body); err != nil {
+			http.Error(w, err.Error(), 400)
+		} else {
+			for _, i := range l.Services {
+				// Register this service with the server
+				err = c.Srv.AddService(i)
+				if err != nil {
+					http.Error(w, err.Error(), 400)
+				}
+			}
+		}
+	}
 }
 
 func (c *ServiceController) handleRemoveService(w http.ResponseWriter, r *http.Request) {
-
+	vars := mux.Vars(r)
+	id := vars["id"]
+	name := vars["name"]
+	if id == "" || name == "" {
+		http.Error(w, "Invalid ID or Name", 400)
+	} else {
+		// Remove the service from the server list
+		c.Srv.RemoveService(id, name)
+	}
 }
 
 func (c *ServiceController) handleRemoveAll(w http.ResponseWriter, r *http.Request) {
-
+	vars := mux.Vars(r)
+	id := vars["id"]
+	if id == "" {
+		http.Error(w, "Invalid ID.", 400)
+	} else {
+		// Remove all services for this ID
+		c.Srv.RemoveAllServices(id)
+	}
 }
 
 func (c *ServiceController) handleGetLocal(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Worked"))
-
+	l := gopifinder.ServiceInfoList{Services: c.Srv.Services}
+	if err := l.WriteTo(w); err != nil {
+		http.Error(w, "Error serializing Service list. "+err.Error(), 500)
+	}
 }
 
 func (c *ServiceController) handleSearch(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	w.Write([]byte(vars["name"]))
+	if s, err := c.Srv.Finder.SearchForServices(); err != nil {
+		http.Error(w, err.Error(), 400)
+	} else {
+		l := gopifinder.ServiceInfoList{Services: s}
+		if err := l.WriteTo(w); err != nil {
+			http.Error(w, "Error serializing Service list. "+err.Error(), 500)
+		}
+	}
 }

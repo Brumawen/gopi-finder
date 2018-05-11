@@ -32,6 +32,7 @@ func (s *ServiceInfoList) WriteTo(w http.ResponseWriter) error {
 	if err != nil {
 		return err
 	}
+	w.Header().Set("content-type", "application/json")
 	w.Write(b)
 	return nil
 }

@@ -4,6 +4,8 @@ import (
 	"flag"
 	"log"
 
+	"github.com/brumawen/gopi-finder/src"
+
 	"github.com/gorilla/mux"
 )
 
@@ -22,6 +24,7 @@ func main() {
 		VerboseLogging: *verbose,
 		Timeout:        *timeout,
 		Router:         mux.NewRouter().StrictSlash(true),
+		Finder:         gopifinder.Finder{VerboseLog: *verbose, Timeout: *timeout},
 	}
 
 	// Add the controllers

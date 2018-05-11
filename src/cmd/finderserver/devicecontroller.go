@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/brumawen/gopi-finder/src"
@@ -26,11 +25,8 @@ func (c *DeviceController) AddController(router *mux.Router, s *Server) {
 // handleGetDevices handles the /device/getdevices web method call
 func (c *DeviceController) handleGetDevices(w http.ResponseWriter, r *http.Request) {
 	l := gopifinder.DeviceInfoList{Devices: c.Srv.Devices}
-	if output, err := json.Marshal(l); err != nil {
+	if err := l.WriteTo(w); err != nil {
 		http.Error(w, "Error serializing Device list. "+err.Error(), 500)
-	} else {
-		w.Header().Set("content-type", "application/json")
-		w.Write(output)
 	}
 }
 

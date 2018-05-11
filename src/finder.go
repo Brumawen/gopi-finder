@@ -1,6 +1,8 @@
 package gopifinder
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -16,12 +18,22 @@ type Finder struct {
 	Timeout     int
 	LastSearch  time.Time
 	ForceSearch bool
+	IsServer    bool
+	MyInfo      DeviceInfo
 }
 
 // FindDevices searches the local LANs for devices.
 // This will initiate a LAN wide search for each local IP address associated with
 // the current device.
 func (f *Finder) FindDevices() ([]DeviceInfo, error) {
+	if f.IsServer {
+		// Get My Information
+		if i, err := NewDeviceInfo(); err != nil {
+			log.Println("Error getting server device information.", err.Error())
+		} else {
+			f.MyInfo = i
+		}
+	}
 	// Clear array
 	f.Devices = []DeviceInfo{}
 	if f.PortNo <= 0 {
@@ -108,7 +120,8 @@ func (f *Finder) SearchForServices() ([]ServiceInfo, error) {
 	for _, i := range devList {
 		d := i
 		for n := 0; n < len(i.IPAddress); n++ {
-			go func() { c <- f.scanForServices(d, n) }()
+			ln := n
+			go func() { c <- f.scanForServices(d, ln) }()
 		}
 	}
 
@@ -178,6 +191,7 @@ func (f *Finder) getCurrentDeviceList() ([]DeviceInfo, error) {
 	return f.Devices, nil
 }
 
+// AddDevice adds the specified device to the devices list
 func (f *Finder) AddDevice(d DeviceInfo) {
 	isNew := true
 	if d.MachineID == "" {
@@ -201,23 +215,32 @@ func (f *Finder) checkIfOnline(ip string) DeviceInfo {
 	// Try to call the online web service of the device
 	timeout := time.Duration(time.Duration(f.Timeout) * time.Second)
 	client := http.Client{Timeout: timeout}
-	if response, err := client.Get(f.getURL(ip, "/online")); err == nil {
-		if response.ContentLength != 0 {
-			if err := d.ReadFrom(response.Body); err != nil {
-				log.Println("Finder: Error reading Online Response from", ip, err.Error())
+	if f.IsServer {
+		// Send the current server's DeviceInfo in the call as well
+		b := new(bytes.Buffer)
+		json.NewEncoder(b).Encode(f.MyInfo)
+		if response, err := client.Post(f.getURL(ip, "/online"), "application/json;charset=utf-8", b); err == nil {
+			if response.ContentLength != 0 {
+				if err := d.ReadFrom(response.Body); err != nil {
+					log.Println("Finder: Error reading Online Response from", ip, err.Error())
+				}
+			}
+		}
+	} else {
+		if response, err := client.Get(f.getURL(ip, "/online")); err == nil {
+			if response.ContentLength != 0 {
+				if err := d.ReadFrom(response.Body); err != nil {
+					log.Println("Finder: Error reading Online Response from", ip, err.Error())
+				}
 			}
 		}
 	}
 	return d
 }
 
-func (f *Finder) scanForServices(d DeviceInfo, i int) []ServiceInfo {
-	if f.VerboseLog {
-		log.Println("Getting Services from", d.HostName)
-	}
-
+func (f *Finder) scanForServices(d DeviceInfo, ipNo int) []ServiceInfo {
 	client := http.Client{}
-	if response, err := client.Get(d.GetURL(i, "/service/get")); err != nil {
+	if response, err := client.Get(d.GetURL(ipNo, "/service/get")); err != nil {
 		time.Sleep(time.Duration(f.Timeout+1) * time.Second)
 	} else {
 		if response.ContentLength != 0 {
@@ -234,8 +257,7 @@ func (f *Finder) scanForServices(d DeviceInfo, i int) []ServiceInfo {
 
 func (f *Finder) scanForDevices(d DeviceInfo, ipNo int) []DeviceInfo {
 	client := http.Client{}
-	u := d.GetURL(ipNo, "/device/get")
-	if response, err := client.Get(u); err != nil {
+	if response, err := client.Get(d.GetURL(ipNo, "/device/get")); err != nil {
 		time.Sleep(time.Duration(f.Timeout+1) * time.Second)
 	} else {
 		if response.ContentLength != 0 {
