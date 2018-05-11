@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -18,6 +19,7 @@ type DeviceInfo struct {
 	HostName  string    `json:"hostName"`
 	IPAddress []string  `json:"ipAddress"`
 	OS        string    `json:"os"`
+	PortNo    int       `json:"portNo"`
 	Created   time.Time `json:"created"`
 }
 
@@ -80,24 +82,34 @@ func (d *DeviceInfo) CreateService(serviceName string) ServiceInfo {
 	}
 }
 
-// ReadFromRequest will read the request body and deserialize it into the entity values
-func (d *DeviceInfo) ReadFromRequest(r *http.Request) error {
-	if r.ContentLength != 0 {
-		b, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			return errors.New("Cannot read request body. " + err.Error())
-		}
-		if b != nil && len(b) != 0 {
-			if err := json.Unmarshal(b, &d); err != nil {
-				return errors.New("Error deserializing DeviceInfo. " + err.Error())
-			}
+// GetURL returns the URL for the specified web method.
+func (d *DeviceInfo) GetURL(idx int, method string) string {
+	if d.PortNo <= 0 {
+		d.PortNo = 20502
+	}
+	if len(d.IPAddress) < idx+1 {
+		return fmt.Sprintf("http://%s:%d%s", d.HostName, d.PortNo, method)
+	}
+	return fmt.Sprintf("http://%s:%d%s", d.IPAddress[idx], d.PortNo, method)
+
+}
+
+// ReadFrom will read the request body and deserialize it into the entity values
+func (d *DeviceInfo) ReadFrom(r io.ReadCloser) error {
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	if b != nil && len(b) != 0 {
+		if err := json.Unmarshal(b, &d); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-// WriteToResponse will serialize the entity and write it to the http response
-func (d *DeviceInfo) WriteToResponse(w http.ResponseWriter) error {
+// WriteTo will serialize the entity and write it to the http response
+func (d *DeviceInfo) WriteTo(w http.ResponseWriter) error {
 	b, err := json.Marshal(d)
 	if err != nil {
 		return err

@@ -25,7 +25,7 @@ func (c *OnlineController) handleOnline(w http.ResponseWriter, r *http.Request) 
 	if r.ContentLength != 0 {
 		// Get the DeviceInfo from the content
 		srcInfo := gopifinder.DeviceInfo{}
-		if err := srcInfo.ReadFromRequest(r); err != nil {
+		if err := srcInfo.ReadFrom(r.Body); err != nil {
 			http.Error(w, err.Error(), 500)
 		}
 		if srcInfo.MachineID != "" {
@@ -39,7 +39,8 @@ func (c *OnlineController) handleOnline(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		http.Error(w, "Error getting DeviceInfo. "+err.Error(), 500)
 	} else {
-		if err := myInfo.WriteToResponse(w); err != nil {
+		myInfo.PortNo = c.Srv.PortNo
+		if err := myInfo.WriteTo(w); err != nil {
 			http.Error(w, err.Error(), 500)
 		}
 	}

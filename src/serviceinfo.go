@@ -2,7 +2,7 @@ package gopifinder
 
 import (
 	"encoding/json"
-	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 )
@@ -20,24 +20,23 @@ type ServiceInfo struct {
 	APIStub     string `json:"apiStub"`
 }
 
-// ReadFromRequest reads the request body and deserializes it into the entity values
-func (s *ServiceInfo) ReadFromRequest(r *http.Request) error {
-	if r.ContentLength != 0 {
-		b, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			return errors.New("Cannot read request body. " + err.Error())
-		}
-		if b != nil && len(b) != 0 {
-			if err := json.Unmarshal(b, &s); err != nil {
-				return errors.New("Error deserializing ServiceInfo. " + err.Error())
-			}
+// ReadFrom reads the string from the reader and deserializes it into the entity values
+func (s *ServiceInfo) ReadFrom(r io.ReadCloser) error {
+	defer r.Close()
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	if b != nil && len(b) != 0 {
+		if err := json.Unmarshal(b, &s); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-// WriteToResponse serializes the entity and writes it to the http response
-func (s *ServiceInfo) WriteToResponse(w http.ResponseWriter) error {
+// WriteTo serializes the entity and writes it to the http response
+func (s *ServiceInfo) WriteTo(w http.ResponseWriter) error {
 	b, err := json.Marshal(s)
 	if err != nil {
 		return err

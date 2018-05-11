@@ -7,19 +7,19 @@ import (
 	"net/http"
 )
 
-// ServiceInfoList holds a list of Services
-type ServiceInfoList struct {
-	Services []ServiceInfo `json:"services"`
+// DeviceInfoList holds a list of Device Information
+type DeviceInfoList struct {
+	Devices []DeviceInfo `json:"devices"`
 }
 
 // ReadFrom reads the string from the reader and deserializes it into the entity values
-func (s *ServiceInfoList) ReadFrom(r io.ReadCloser) error {
+func (d *DeviceInfoList) ReadFrom(r io.ReadCloser) error {
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
 	}
 	if b != nil && len(b) != 0 {
-		if err := json.Unmarshal(b, &s); err != nil {
+		if err := json.Unmarshal(b, &d); err != nil {
 			return err
 		}
 	}
@@ -27,8 +27,8 @@ func (s *ServiceInfoList) ReadFrom(r io.ReadCloser) error {
 }
 
 // WriteTo serializes the entity and writes it to the http response
-func (s *ServiceInfoList) WriteTo(w http.ResponseWriter) error {
-	b, err := json.Marshal(s)
+func (d *DeviceInfoList) WriteTo(w http.ResponseWriter) error {
+	b, err := json.Marshal(d)
 	if err != nil {
 		return err
 	}
@@ -37,8 +37,8 @@ func (s *ServiceInfoList) WriteTo(w http.ResponseWriter) error {
 }
 
 // Serialize serializes the entity and returns the serialized string
-func (s *ServiceInfoList) Serialize() (string, error) {
-	b, err := json.Marshal(s)
+func (d *DeviceInfoList) Serialize() (string, error) {
+	b, err := json.Marshal(d)
 	if err != nil {
 		return "", err
 	}
@@ -46,8 +46,8 @@ func (s *ServiceInfoList) Serialize() (string, error) {
 }
 
 // Deserialize deserializes the specified string into the entity values
-func (s *ServiceInfoList) Deserialize(v string) error {
-	err := json.Unmarshal([]byte(v), &s)
+func (d *DeviceInfoList) Deserialize(v string) error {
+	err := json.Unmarshal([]byte(v), &d)
 	if err != nil {
 		return err
 	}
