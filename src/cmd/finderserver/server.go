@@ -41,6 +41,7 @@ func (s *Server) ListenAndServe() error {
 		s.MyDevice = info
 		s.AddDevice(info)
 	}
+	log.Println("Server listening on port", s.PortNo)
 	return http.ListenAndServe(fmt.Sprintf("%v:%d", s.Host, s.PortNo), s.Router)
 }
 
@@ -81,7 +82,7 @@ func (s *Server) RemoveDevice(id string) {
 // AddService adds the specified ServiceInfo object to the Service list
 func (s *Server) AddService(v gopifinder.ServiceInfo) error {
 	if v.MachineID == "" || v.ServiceName == "" {
-		return errors.New("Missing Service ID or Name.")
+		return errors.New("Missing Service ID or Name")
 	}
 	for _, i := range s.Services {
 		if i.MachineID == v.MachineID && i.ServiceName == v.ServiceName {

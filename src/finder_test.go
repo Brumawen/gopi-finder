@@ -5,7 +5,6 @@ import "fmt"
 
 func TestCanFindDevices(t *testing.T) {
 	f := Finder{}
-	defer f.Close()
 	if d, err := f.FindDevices(); err != nil {
 		t.Error(err)
 	} else {
