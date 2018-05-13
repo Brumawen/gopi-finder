@@ -31,6 +31,7 @@ func main() {
 	s.AddController(new(OnlineController))
 	s.AddController(new(DeviceController))
 	s.AddController(new(ServiceController))
+	s.AddController(new(StatusController))
 
 	// Start the server
 	log.Fatal(s.ListenAndServe())
