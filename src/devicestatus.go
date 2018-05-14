@@ -1,8 +1,12 @@
 package gopifinder
 
 import (
+	"encoding/json"
 	"errors"
+	"io"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -24,7 +28,7 @@ type DeviceStatus struct {
 	FreeDiskPerc int       `json:"freeDiskPerc"` // Free Disk Space in percentage
 	AvailMem     int       `json:"availMem"`     // Available Memory in bytes
 	Uptime       int       `json:"uptime"`       // CPU uptime in seconds
-	Created      time.Time `json:"created"`
+	Created      time.Time `json:"created"`      // The date and time the status was created
 }
 
 // NewDeviceStatus creates a new DeviceStatus struct and populates it with the values
@@ -177,6 +181,49 @@ func (d *DeviceStatus) loadValuesForWindows() error {
 	if len(m) >= 3 {
 		d.OSName = m[1]
 		d.OSVersion = m[2]
+	}
+	return nil
+}
+
+// ReadFrom reads the string from the reader and deserializes it into the entity values
+func (d *DeviceStatus) ReadFrom(r io.ReadCloser) error {
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	if b != nil && len(b) != 0 {
+		if err := json.Unmarshal(b, &d); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// WriteTo serializes the entity and writes it to the http response
+func (d *DeviceStatus) WriteTo(w http.ResponseWriter) error {
+	b, err := json.Marshal(d)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("content-type", "application/json")
+	w.Write(b)
+	return nil
+}
+
+// Serialize serializes the entity and returns the serialized string
+func (d *DeviceStatus) Serialize() (string, error) {
+	b, err := json.Marshal(d)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+// Deserialize deserializes the specified string into the entity values
+func (d *DeviceStatus) Deserialize(v string) error {
+	err := json.Unmarshal([]byte(v), &d)
+	if err != nil {
+		return err
 	}
 	return nil
 }

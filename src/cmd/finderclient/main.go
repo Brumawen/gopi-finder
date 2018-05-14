@@ -30,7 +30,7 @@ func main() {
 	if *devCmd {
 		// Get devices registered with a specific device
 		if i, err := gopifinder.NewDeviceInfo(); err != nil {
-			print(err)
+			fmt.Println(err)
 		} else {
 			if *ip != "" {
 				i.IPAddress = []string{*ip}
@@ -42,12 +42,12 @@ func main() {
 		}
 		d, err = f.SearchForDevices()
 		if err != nil {
-			print(err)
+			fmt.Println(err)
 		}
 	} else if *srvCmd {
 		// Get services registered with a specific device
 		if i, err := gopifinder.NewDeviceInfo(); err != nil {
-			print(err)
+			fmt.Println(err)
 		} else {
 			if *ip != "" {
 				i.IPAddress = []string{*ip}
@@ -59,7 +59,7 @@ func main() {
 		}
 		s, err = f.SearchForServices()
 		if err != nil {
-			print(err)
+			fmt.Println(err)
 		}
 	} else {
 		// Find online Devices on the LAN
@@ -68,7 +68,7 @@ func main() {
 		}
 		d, err = f.FindDevices()
 		if err != nil {
-			print(err)
+			fmt.Println(err)
 		}
 	}
 
