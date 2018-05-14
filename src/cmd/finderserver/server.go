@@ -91,7 +91,7 @@ func (s *Server) AddService(v gopifinder.ServiceInfo) error {
 				log.Println("Updated ServiceName", i.ServiceName, "for MachineID", i.MachineID)
 			}
 			i.PortNo = v.PortNo
-			i.Host = v.Host
+			i.HostName = v.HostName
 			i.IPAddress = v.IPAddress
 			i.APIStub = v.APIStub
 			return nil

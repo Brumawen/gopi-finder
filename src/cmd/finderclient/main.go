@@ -88,7 +88,7 @@ func main() {
 	if len(s) != 0 {
 		for _, i := range s {
 			if *all {
-				fmt.Println(i.MachineID, i.Host, i.IPAddress, i.PortNo, i.ServiceName, i.APIStub)
+				fmt.Println(i.MachineID, i.HostName, i.IPAddress, i.PortNo, i.ServiceName, i.APIStub)
 			} else {
 				fmt.Println(i.MachineID, i.ServiceName, i.APIStub)
 			}
