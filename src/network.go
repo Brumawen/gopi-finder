@@ -45,7 +45,8 @@ func GetClientID() (string, error) {
 	return string(data), nil
 }
 
-// GetLocalIPAddresses gets a list of valid IPv4 addresses for the local machine
+// GetLocalIPAddresses gets a list of valid IPv4 addresses for the local machine.
+// These are addresses for networks that are currently up.
 func GetLocalIPAddresses() ([]string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -53,21 +54,23 @@ func GetLocalIPAddresses() ([]string, error) {
 	}
 	l := []string{}
 	for _, i := range ifaces {
-		adds, err := i.Addrs()
-		if err != nil {
-			return nil, err
-		}
-		for _, addr := range adds {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
+		if i.Flags&net.FlagUp != 0 {
+			adds, err := i.Addrs()
+			if err != nil {
+				return nil, err
 			}
-			// Only select valid IPv4 addresses that are not loopbacks
-			if ip != nil && ip.To4() != nil && !ip.IsLoopback() {
-				l = append(l, ip.String())
+			for _, addr := range adds {
+				var ip net.IP
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ip = v.IP
+				case *net.IPAddr:
+					ip = v.IP
+				}
+				// Only select valid IPv4 addresses that are not loopbacks
+				if ip != nil && ip.To4() != nil && !ip.IsLoopback() {
+					l = append(l, ip.String())
+				}
 			}
 		}
 	}

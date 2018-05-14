@@ -2,7 +2,6 @@ package gopifinder
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"os/exec"
 	"regexp"
@@ -156,7 +155,6 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 		return errors.New("Error getting system uptime. " + err.Error())
 	}
 	i := strings.IndexRune(txt, '.')
-	fmt.Println(txt, txt[:i])
 	if i >= 0 {
 		v, err := strconv.Atoi(txt[:i])
 		if err != nil {
@@ -168,7 +166,6 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 }
 
 func (d *DeviceStatus) loadValuesForWindows() error {
-	fmt.Println("Windows")
 	// Get the operating system information
 	re := regexp.MustCompile("([\\w\\s]+)\\s\\[Version ([\\d\\.]+)\\]")
 	out, err := exec.Command("ver").Output()
@@ -176,9 +173,7 @@ func (d *DeviceStatus) loadValuesForWindows() error {
 		return errors.New("Error getting Operating System information. " + err.Error())
 	}
 	txt := strings.TrimSpace(string(out))
-	fmt.Println(txt)
 	m := re.FindStringSubmatch(txt)
-	fmt.Println(len(m))
 	if len(m) >= 3 {
 		d.OSName = m[1]
 		d.OSVersion = m[2]

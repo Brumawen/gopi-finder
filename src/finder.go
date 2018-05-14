@@ -39,6 +39,9 @@ func (f *Finder) FindDevices() ([]DeviceInfo, error) {
 	if f.PortNo <= 0 {
 		f.PortNo = 20502
 	}
+	if f.Timeout <= 0 {
+		f.Timeout = 2
+	}
 	f.ForceSearch = false
 
 	if f.VerboseLog {
