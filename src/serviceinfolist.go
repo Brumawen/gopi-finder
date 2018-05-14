@@ -1,6 +1,7 @@
 package gopifinder
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -10,6 +11,15 @@ import (
 // ServiceInfoList holds a list of Services
 type ServiceInfoList struct {
 	Services []ServiceInfo `json:"services"`
+}
+
+// RegisterWith will register the Services with the specified device.
+func (s *ServiceInfoList) RegisterWith(d DeviceInfo, ipNo int) error {
+	b := new(bytes.Buffer)
+	json.NewEncoder(b).Encode(s)
+	client := http.Client{}
+	_, err := client.Post(d.GetURL(ipNo, "/service/add"), "application/json;charset=utf-8", b)
+	return err
 }
 
 // ReadFrom reads the string from the reader and deserializes it into the entity values

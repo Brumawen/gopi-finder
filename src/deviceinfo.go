@@ -73,13 +73,16 @@ func NewDeviceInfo() (DeviceInfo, error) {
 }
 
 // CreateService creates and returns a new ServiceInfo struct object for the current device.
-func (d *DeviceInfo) CreateService(serviceName string) ServiceInfo {
-	return ServiceInfo{
-		ServiceName: serviceName,
+func (d *DeviceInfo) CreateService(name string) ServiceInfo {
+	s := ServiceInfo{
+		ServiceName: name,
 		MachineID:   d.MachineID,
-		Host:        d.HostName,
-		IPAddress:   d.IPAddress[0],
+		HostName:    d.HostName,
 	}
+	if len(d.IPAddress) != 0 {
+		s.IPAddress = d.IPAddress[0]
+	}
+	return s
 }
 
 // GetURL returns the URL for the specified web method.
