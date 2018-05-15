@@ -13,7 +13,7 @@ type StatusController struct {
 
 func (c *StatusController) AddController(router *mux.Router, s *Server) {
 	c.Srv = s
-	router.Methods("GET").Path("/status/getstatus").Name("GetStatus").
+	router.Methods("GET").Path("/status/get").Name("GetStatus").
 		Handler(Logger(http.HandlerFunc(c.handleGetStatus)))
 }
 
