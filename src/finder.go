@@ -95,6 +95,26 @@ func (f *Finder) FindDevices() ([]DeviceInfo, error) {
 	return f.Devices, nil
 }
 
+// RegisterServices registers the list of services with the
+// registered devices on the network.
+func (f *Finder) RegisterServices(sl []ServiceInfo) error {
+	// First contact a device to get the list of devices
+	devList, err := f.getCurrentDeviceList()
+	if err != nil {
+		return err
+	}
+
+	for _, i := range devList {
+		d := i
+		for n := 0; n < len(i.IPAddress); n++ {
+			ln := n
+			go f.registerServices(d, ln, sl)
+		}
+	}
+
+	return nil
+}
+
 // SearchForDevices will search the registered devices for services that match the
 // list of service names specified.
 func (f *Finder) SearchForDevices() ([]DeviceInfo, error) {
@@ -273,4 +293,17 @@ func (f *Finder) scanForDevices(d DeviceInfo, ipNo int) []DeviceInfo {
 		}
 	}
 	return []DeviceInfo{}
+}
+
+func (f *Finder) registerServices(d DeviceInfo, ipNo int, sl []ServiceInfo) error {
+	// Create a ServiceInfoList object that will be used to hold the ServiceInfo slice
+	siList := ServiceInfoList{Services: sl}
+	// Post the list to the device
+	client := http.Client{}
+	b := new(bytes.Buffer)
+	json.NewEncoder(b).Encode(siList)
+	if _, err := client.Post(d.GetURL(ipNo, "/service/add"), "application/json;charset=utf-8", b); err != nil {
+		return err
+	}
+	return nil
 }

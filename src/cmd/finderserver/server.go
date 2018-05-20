@@ -30,6 +30,7 @@ func (s *Server) AddController(c Controller) {
 
 // ListenAndServe starts the server
 func (s *Server) ListenAndServe() error {
+	s.Finder.IsServer = true
 	if d, err := s.Finder.FindDevices(); err != nil {
 		log.Print("Error finding devices.", err.Error())
 	} else {
