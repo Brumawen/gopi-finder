@@ -24,7 +24,7 @@ func main() {
 		VerboseLogging: *verbose,
 		Timeout:        *timeout,
 		Router:         mux.NewRouter().StrictSlash(true),
-		Finder:         gopifinder.Finder{VerboseLog: *verbose, Timeout: *timeout},
+		Finder:         &gopifinder.Finder{VerboseLog: *verbose, Timeout: *timeout},
 	}
 
 	// Add the controllers

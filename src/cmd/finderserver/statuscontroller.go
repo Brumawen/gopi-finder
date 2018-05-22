@@ -7,10 +7,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// StatusController handles the Web Methods used to get the status of the current device.
 type StatusController struct {
 	Srv *Server
 }
 
+// AddController adds the routes associated with the controller to the router.
 func (c *StatusController) AddController(router *mux.Router, s *Server) {
 	c.Srv = s
 	router.Methods("GET").Path("/status/get").Name("GetStatus").

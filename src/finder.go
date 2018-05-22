@@ -19,21 +19,13 @@ type Finder struct {
 	LastSearch  time.Time
 	ForceSearch bool
 	IsServer    bool
-	MyInfo      DeviceInfo
+	MyInfo      *DeviceInfo
 }
 
 // FindDevices searches the local LANs for devices.
 // This will initiate a LAN wide search for each local IP address associated with
 // the current device.
 func (f *Finder) FindDevices() ([]DeviceInfo, error) {
-	if f.IsServer {
-		// Get My Information
-		if i, err := NewDeviceInfo(); err != nil {
-			log.Println("Error getting server device information.", err.Error())
-		} else {
-			f.MyInfo = i
-		}
-	}
 	// Clear array
 	f.Devices = []DeviceInfo{}
 	if f.PortNo <= 0 {

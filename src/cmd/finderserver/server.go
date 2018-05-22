@@ -17,10 +17,9 @@ type Server struct {
 	VerboseLogging bool
 	Timeout        int
 	Devices        []gopifinder.DeviceInfo
-	MyDevice       gopifinder.DeviceInfo
 	Services       []gopifinder.ServiceInfo
 	Router         *mux.Router
-	Finder         gopifinder.Finder
+	Finder         *gopifinder.Finder
 }
 
 // AddController adds the specified web service controller to the Router
@@ -31,17 +30,31 @@ func (s *Server) AddController(c Controller) {
 // ListenAndServe starts the server
 func (s *Server) ListenAndServe() error {
 	s.Finder.IsServer = true
-	if d, err := s.Finder.FindDevices(); err != nil {
-		log.Print("Error finding devices.", err.Error())
-	} else {
-		s.Devices = d
-	}
+	// Get the current server device info
 	if info, err := gopifinder.NewDeviceInfo(); err != nil {
 		log.Println("Error getting Device Information.", err.Error())
 	} else {
-		s.MyDevice = info
+		if s.Host != "" {
+			info.IPAddress = []string{s.Host}
+		}
+		info.PortNo = s.PortNo
+
+		s.Finder.MyInfo = &info
 		s.AddDevice(info)
 	}
+
+	// Tell other devices we are here
+	go func() {
+		if d, err := s.Finder.FindDevices(); err != nil {
+			log.Print("Error finding devices.", err.Error())
+		} else {
+			for _, i := range d {
+				s.AddDevice(i)
+			}
+		}
+	}()
+
+	// Start the web server
 	log.Println("Server listening on port", s.PortNo)
 	return http.ListenAndServe(fmt.Sprintf("%v:%d", s.Host, s.PortNo), s.Router)
 }
@@ -49,7 +62,7 @@ func (s *Server) ListenAndServe() error {
 // AddDevice will add the specified DeviceInfo object to the Devices list
 func (s *Server) AddDevice(d gopifinder.DeviceInfo) {
 	if s.VerboseLogging {
-		log.Println("Registering device:", d.HostName, d.MachineID)
+		log.Println("Registering device:", d.HostName, d.MachineID, d.IPAddress)
 	}
 	for _, i := range s.Devices {
 		if i.MachineID == d.MachineID {

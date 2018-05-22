@@ -24,9 +24,9 @@ type DeviceStatus struct {
 	HWSerialNo   string    `json:"hwSerialNo"`   // Hardware SerialNo
 	CPUTemp      float64   `json:"cpuTemp"`      // CPU temperature in Celcius
 	GPUTemp      float64   `json:"gpuTemp"`      // GPU temperature in Celcius
-	FreeDisk     int       `json:"freeDisk"`     // Free Disk Space in bytes
+	FreeDisk     int64     `json:"freeDisk"`     // Free Disk Space in bytes
 	FreeDiskPerc int       `json:"freeDiskPerc"` // Free Disk Space in percentage
-	AvailMem     int       `json:"availMem"`     // Available Memory in bytes
+	AvailMem     int64     `json:"availMem"`     // Available Memory in bytes
 	Uptime       int       `json:"uptime"`       // CPU uptime in seconds
 	Created      time.Time `json:"created"`      // The date and time the status was created
 }
@@ -124,17 +124,17 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 	}
 	m = re.FindStringSubmatch(string(out))
 	if len(m) >= 5 {
-		v, err := strconv.Atoi(m[3])
+		v, err := strconv.ParseInt(m[3], 10, 64)
 		if err != nil {
 			return errors.New("Error parsing Disk space. " + err.Error())
 		}
 		d.FreeDisk = v
 
-		v, err = strconv.Atoi(m[4])
+		n, err := strconv.Atoi(m[4])
 		if err != nil {
 			return errors.New("Error parsing Disk percentage. " + err.Error())
 		}
-		d.FreeDiskPerc = v
+		d.FreeDiskPerc = n
 	}
 
 	//get available memory
@@ -145,7 +145,7 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 	}
 	m = re.FindStringSubmatch(txt)
 	if len(m) >= 2 {
-		v, err := strconv.Atoi(m[1])
+		v, err := strconv.ParseInt(m[1], 10, 64)
 		if err != nil {
 			return errors.New("Error parsing available memory. " + err.Error())
 		}
@@ -171,17 +171,60 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 
 func (d *DeviceStatus) loadValuesForWindows() error {
 	// Get the operating system information
-	re := regexp.MustCompile("([\\w\\s]+)\\s\\[Version ([\\d\\.]+)\\]")
-	out, err := exec.Command("ver").Output()
+	out, err := exec.Command("wmic", "os", "get", "/value").Output()
 	if err != nil {
 		return errors.New("Error getting Operating System information. " + err.Error())
 	}
-	txt := strings.TrimSpace(string(out))
-	m := re.FindStringSubmatch(txt)
-	if len(m) >= 3 {
-		d.OSName = m[1]
-		d.OSVersion = m[2]
+	arr := strings.Split(strings.TrimSpace(string(out)), "\n")
+	for _, i := range arr {
+		if strings.HasPrefix(i, "Caption=") {
+			d.OSName = strings.TrimSpace(i[8:])
+		}
+		if strings.HasPrefix(i, "FreePhysicalMemory=") {
+			d.AvailMem = ConvToInt64(i[19:], 0)
+		}
+		if strings.HasPrefix(i, "LastBootUpTime=") {
+			t := ConvToDate(i[15:])
+			d.Uptime = int(time.Since(t).Seconds())
+		}
+		if strings.HasPrefix(i, "Version=") {
+			d.OSVersion = strings.TrimSpace(i[8:])
+		}
 	}
+
+	// Get the baseboard information
+	out, err = exec.Command("wmic", "baseboard", "get", "/value").Output()
+	if err != nil {
+		return errors.New("Error getting Baseboard information. " + err.Error())
+	}
+	arr = strings.Split(strings.TrimSpace(string(out)), "\n")
+	for _, i := range arr {
+		if strings.HasPrefix(i, "SerialNumber=") {
+			d.HWSerialNo = strings.TrimSpace(i[13:])
+			break
+		}
+		if strings.HasPrefix(i, "Manufacturer=") {
+			d.HWType = strings.TrimSpace(i[13:])
+		}
+	}
+
+	// Get the logical disk information
+	out, err = exec.Command("wmic", "logicaldisk", "get", "/value").Output()
+	if err != nil {
+		return errors.New("Error getting Baseboard information. " + err.Error())
+	}
+	arr = strings.Split(strings.TrimSpace(string(out)), "\n")
+	for _, i := range arr {
+		if strings.HasPrefix(i, "FreeSpace=") {
+			d.FreeDisk = ConvToInt64(i[10:], 0)
+		}
+		if strings.HasPrefix(i, "Size=") {
+			n := ConvToInt64(i[5:], 0)
+			d.FreeDiskPerc = int(float64(d.FreeDisk) / float64(n) * float64(100))
+			break
+		}
+	}
+
 	return nil
 }
 
