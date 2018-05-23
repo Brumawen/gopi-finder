@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/brumawen/gopi-finder/src"
@@ -70,11 +71,16 @@ func (s *Server) ScanForDevices() {
 			s.AddDevice(info)
 
 			if len(info.IPAddress) != 0 {
-				// Network is up
-				if s.VerboseLogging {
-					log.Println("Network is up")
+				if strings.HasPrefix(info.IPAddress[0], "169.254") {
+					log.Println("Network is not DHCP capable yet.")
+					time.Sleep(time.Minute)
+				} else {
+					// Network is up
+					if s.VerboseLogging {
+						log.Println("Network is up")
+					}
+					isUp = true
 				}
-				isUp = true
 			} else {
 				time.Sleep(5 * time.Second)
 			}
