@@ -31,9 +31,14 @@ func NewDeviceInfo() (DeviceInfo, error) {
 	// Get the operating system
 	out, err := exec.Command("uname").Output()
 	if err != nil {
-		return d, errors.New("Error getting device Operating System. " + err.Error())
+		if strings.Contains(err.Error(), "executable file not found") {
+			d.OS = "WindowsNT"
+		} else {
+			return d, errors.New("Error getting device Operating System. " + err.Error())
+		}
+	} else {
+		d.OS = strings.TrimSpace(string(out))
 	}
-	d.OS = strings.TrimSpace(string(out))
 
 	// Get the Host Name
 	out, err = exec.Command("hostname").Output()
