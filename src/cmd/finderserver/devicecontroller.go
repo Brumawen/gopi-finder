@@ -20,6 +20,8 @@ func (c *DeviceController) AddController(router *mux.Router, s *Server) {
 		Handler(Logger(http.HandlerFunc(c.handleGetDevices)))
 	router.Methods("DELETE").Path("/device/remove/{id}").Name("RemoveDevice").
 		Handler(Logger(http.HandlerFunc(c.handleRemoveDevice)))
+	router.Methods("GET").Path("/device/refresh").Name("RefreshDevices").
+		Handler(Logger(http.HandlerFunc(c.handleRefreshDevices)))
 }
 
 // handleGetDevices handles the /device/getdevices web method call
@@ -31,5 +33,17 @@ func (c *DeviceController) handleGetDevices(w http.ResponseWriter, r *http.Reque
 }
 
 func (c *DeviceController) handleRemoveDevice(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	if id == "" {
+		http.Error(w, "Invalid ID", 400)
+	} else {
+		// Remove the device from the list
+		c.Srv.RemoveDevice(id)
+	}
+}
 
+func (c *DeviceController) handleRefreshDevices(w http.ResponseWriter, r *http.Request) {
+	go c.Srv.ScanForDevices()
+	w.Write([]byte("Refresh Started."))
 }

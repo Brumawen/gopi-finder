@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/brumawen/gopi-finder/src"
 	"github.com/gorilla/mux"
@@ -43,18 +44,57 @@ func (s *Server) ListenAndServe() error {
 
 	// Tell other devices we are here
 	go func() {
-		if d, err := s.Finder.FindDevices(); err != nil {
-			log.Print("Error finding devices.", err.Error())
-		} else {
-			for _, i := range d {
-				s.AddDevice(i)
-			}
-		}
+		s.ScanForDevices()
 	}()
 
 	// Start the web server
 	log.Println("Server listening on port", s.PortNo)
 	return http.ListenAndServe(fmt.Sprintf("%v:%d", s.Host, s.PortNo), s.Router)
+}
+
+// ScanForDevices scans the network for other devices.
+func (s *Server) ScanForDevices() {
+	// Get the current server device info
+	if s.VerboseLogging {
+		log.Println("Scanning network for other devices.")
+	}
+	isUp := false
+	for !isUp {
+		if info, _, err := s.Finder.GetMyInfo(); err != nil {
+			log.Println("Error getting Device Information.", err.Error())
+		} else {
+			if s.Host != "" {
+				info.IPAddress = []string{s.Host}
+			}
+			info.PortNo = s.PortNo
+			s.AddDevice(info)
+
+			if len(info.IPAddress) != 0 {
+				// Network is up
+				if s.VerboseLogging {
+					log.Println("Network is up")
+				}
+				isUp = true
+			} else {
+				time.Sleep(5 * time.Second)
+			}
+		}
+	}
+
+	// Tell other devices we are here
+	if s.VerboseLogging {
+		log.Println("Performing scan.")
+	}
+	if d, err := s.Finder.FindDevices(); err != nil {
+		log.Print("Error finding devices.", err.Error())
+	} else {
+		for _, i := range d {
+			s.AddDevice(i)
+		}
+	}
+	if s.VerboseLogging {
+		log.Println("Scan complete.")
+	}
 }
 
 // AddDevice will add the specified DeviceInfo object to the Devices list
