@@ -31,6 +31,10 @@ func (s *Server) AddController(c Controller) {
 
 // ListenAndServe starts the server
 func (s *Server) ListenAndServe() error {
+	if s.VerboseLogging {
+		log.Println("----------------------------------------------------------------------")
+		log.Println("Starting server.")
+	}
 	s.Finder.IsServer = true
 	// Get the current server device info
 	if info, _, err := s.Finder.GetMyInfo(); err != nil {
@@ -55,6 +59,7 @@ func (s *Server) ListenAndServe() error {
 
 // ScanForDevices scans the network for other devices.
 func (s *Server) ScanForDevices() {
+
 	// Get the current server device info
 	if s.VerboseLogging {
 		log.Println("Scanning network for other devices.")
@@ -89,8 +94,9 @@ func (s *Server) ScanForDevices() {
 
 	// Tell other devices we are here
 	if s.VerboseLogging {
-		log.Println("Performing scan.")
+		log.Println("Performing network device scan.")
 	}
+	start := time.Now()
 	if d, err := s.Finder.FindDevices(); err != nil {
 		log.Print("Error finding devices.", err.Error())
 	} else {
@@ -99,7 +105,7 @@ func (s *Server) ScanForDevices() {
 		}
 	}
 	if s.VerboseLogging {
-		log.Println("Scan complete.")
+		log.Println("Network scan complete in", time.Since(start))
 	}
 }
 
