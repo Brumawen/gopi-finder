@@ -35,11 +35,14 @@ func (c *OnlineController) handleOnline(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Get this server's deviceinfo
-	myInfo, err := gopifinder.NewDeviceInfo()
+	myInfo, mustAdd, err := c.Srv.Finder.GetMyInfo()
 	if err != nil {
 		http.Error(w, "Error getting DeviceInfo. "+err.Error(), 500)
 	} else {
 		myInfo.PortNo = c.Srv.PortNo
+		if mustAdd {
+			c.Srv.AddDevice(myInfo)
+		}
 		if err := myInfo.WriteTo(w); err != nil {
 			http.Error(w, err.Error(), 500)
 		}

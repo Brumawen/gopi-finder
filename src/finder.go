@@ -87,6 +87,16 @@ func (f *Finder) FindDevices() ([]DeviceInfo, error) {
 	return f.Devices, nil
 }
 
+// GetMyInfo returns the latest device information for the current device.
+func (f *Finder) GetMyInfo() (DeviceInfo, bool, error) {
+	if f.MyInfo == nil || len(f.MyInfo.IPAddress) == 0 || time.Since(f.MyInfo.Created).Minutes() > 5 {
+		info, err := NewDeviceInfo()
+		f.MyInfo = &info
+		return info, true, err
+	}
+	return *f.MyInfo, false, nil
+}
+
 // RegisterServices registers the list of services with the
 // registered devices on the network.
 func (f *Finder) RegisterServices(sl []ServiceInfo) error {

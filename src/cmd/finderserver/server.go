@@ -31,15 +31,13 @@ func (s *Server) AddController(c Controller) {
 func (s *Server) ListenAndServe() error {
 	s.Finder.IsServer = true
 	// Get the current server device info
-	if info, err := gopifinder.NewDeviceInfo(); err != nil {
+	if info, _, err := s.Finder.GetMyInfo(); err != nil {
 		log.Println("Error getting Device Information.", err.Error())
 	} else {
 		if s.Host != "" {
 			info.IPAddress = []string{s.Host}
 		}
 		info.PortNo = s.PortNo
-
-		s.Finder.MyInfo = &info
 		s.AddDevice(info)
 	}
 
@@ -69,6 +67,7 @@ func (s *Server) AddDevice(d gopifinder.DeviceInfo) {
 			// Update the Device
 			i.HostName = d.HostName
 			i.IPAddress = d.IPAddress
+			i.Created = d.Created
 			return
 		}
 	}
