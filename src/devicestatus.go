@@ -101,11 +101,11 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 	if err != nil {
 		return errors.New("Error getting CPU temperature. " + err.Error())
 	}
-	if v, err := strconv.ParseFloat(strings.TrimSpace(txt), 64); err != nil {
+	v, err := strconv.ParseFloat(strings.TrimSpace(txt), 64)
+	if err != nil {
 		return errors.New("Could not parse CPU Temperature. " + txt)
-	} else {
-		d.CPUTemp = v / 1000
 	}
+	d.CPUTemp = v / 1000
 
 	//get gpu temperature
 	out, err := exec.Command("/opt/vc/bin/vcgencmd", "measure_temp").Output()
@@ -114,7 +114,7 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 	}
 	txt = string(out)
 	txt = txt[5 : len(txt)-3]
-	v, err := strconv.ParseFloat(txt, 64)
+	v, err = strconv.ParseFloat(txt, 64)
 	if err != nil {
 		return errors.New("Error parsing GPU temperature. " + err.Error())
 	}
