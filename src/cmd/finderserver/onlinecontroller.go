@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/brumawen/gopi-finder/src"
@@ -17,7 +18,7 @@ type OnlineController struct {
 func (c *OnlineController) AddController(router *mux.Router, s *Server) {
 	c.Srv = s
 	router.Methods("POST", "GET").Path("/online").Name("Online").
-		Handler(Logger(http.HandlerFunc(c.handleOnline)))
+		Handler(Logger(c, http.HandlerFunc(c.handleOnline)))
 }
 
 // handleOnline handles the /online web method call
@@ -47,4 +48,10 @@ func (c *OnlineController) handleOnline(w http.ResponseWriter, r *http.Request) 
 			http.Error(w, err.Error(), 500)
 		}
 	}
+}
+
+// LogInfo is used to log information messages for this controller.
+func (c *OnlineController) LogInfo(v ...interface{}) {
+	a := fmt.Sprint(v)
+	logger.Info("OnlineController: ", a[1:len(a)-1])
 }

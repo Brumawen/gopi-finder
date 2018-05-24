@@ -25,7 +25,10 @@ func main() {
 	var s []gopifinder.ServiceInfo
 	var err error
 
-	f := gopifinder.Finder{VerboseLog: *verbose, Timeout: *timeout}
+	f := gopifinder.Finder{
+		VerboseLogging: *verbose,
+		Timeout:        *timeout,
+	}
 
 	if *devCmd {
 		// Get devices registered with a specific device

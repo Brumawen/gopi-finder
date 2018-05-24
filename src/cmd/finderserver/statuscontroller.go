@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	gopifinder "github.com/brumawen/gopi-finder/src"
@@ -16,7 +17,7 @@ type StatusController struct {
 func (c *StatusController) AddController(router *mux.Router, s *Server) {
 	c.Srv = s
 	router.Methods("GET").Path("/status/get").Name("GetStatus").
-		Handler(Logger(http.HandlerFunc(c.handleGetStatus)))
+		Handler(Logger(c, http.HandlerFunc(c.handleGetStatus)))
 }
 
 func (c *StatusController) handleGetStatus(w http.ResponseWriter, r *http.Request) {
@@ -28,4 +29,10 @@ func (c *StatusController) handleGetStatus(w http.ResponseWriter, r *http.Reques
 			http.Error(w, "Error serializing Status. "+err.Error(), 500)
 		}
 	}
+}
+
+// LogInfo is used to log information messages for this controller.
+func (c *StatusController) LogInfo(v ...interface{}) {
+	a := fmt.Sprint(v)
+	logger.Info("StatusController: ", a[1:len(a)-1])
 }

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os/exec"
 	"regexp"
@@ -103,7 +102,7 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 		return errors.New("Error getting CPU temperature. " + err.Error())
 	}
 	if v, err := strconv.ParseFloat(strings.TrimSpace(txt), 64); err != nil {
-		log.Println("Could not parse CPU Temperature.", txt)
+		return errors.New("Could not parse CPU Temperature. " + txt)
 	} else {
 		d.CPUTemp = v / 1000
 	}

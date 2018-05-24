@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/brumawen/gopi-finder/src"
@@ -17,11 +18,11 @@ type DeviceController struct {
 func (c *DeviceController) AddController(router *mux.Router, s *Server) {
 	c.Srv = s
 	router.Methods("GET").Path("/device/get").Name("GetDevices").
-		Handler(Logger(http.HandlerFunc(c.handleGetDevices)))
+		Handler(Logger(c, http.HandlerFunc(c.handleGetDevices)))
 	router.Methods("DELETE").Path("/device/remove/{id}").Name("RemoveDevice").
-		Handler(Logger(http.HandlerFunc(c.handleRemoveDevice)))
+		Handler(Logger(c, http.HandlerFunc(c.handleRemoveDevice)))
 	router.Methods("GET").Path("/device/refresh").Name("RefreshDevices").
-		Handler(Logger(http.HandlerFunc(c.handleRefreshDevices)))
+		Handler(Logger(c, http.HandlerFunc(c.handleRefreshDevices)))
 }
 
 // handleGetDevices handles the /device/getdevices web method call
@@ -46,4 +47,10 @@ func (c *DeviceController) handleRemoveDevice(w http.ResponseWriter, r *http.Req
 func (c *DeviceController) handleRefreshDevices(w http.ResponseWriter, r *http.Request) {
 	go c.Srv.ScanForDevices()
 	w.Write([]byte("Refresh Started."))
+}
+
+// LogInfo is used to log information messages for this controller.
+func (c *DeviceController) LogInfo(v ...interface{}) {
+	a := fmt.Sprint(v)
+	logger.Info("DeviceController: ", a[1:len(a)-1])
 }

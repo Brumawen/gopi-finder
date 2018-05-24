@@ -2,37 +2,69 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"strings"
 
-	"github.com/brumawen/gopi-finder/src"
-
-	"github.com/gorilla/mux"
+	"github.com/kardianos/service"
 )
 
-func main() {
-	var host = flag.String("h", "", "Host Name or IP Address.  (default All)")
-	var port = flag.Int("p", 20502, "Port Number to listen on.")
-	var verbose = flag.Bool("v", false, "Verbose logging.")
-	var timeout = flag.Int("t", 5, "Timeout in seconds to wait for a response from a IP probe.")
+var logger service.Logger
 
+func main() {
+	port := flag.Int("p", 20502, "Port Number to listen on.")
+	timeout := flag.Int("t", 5, "Timeout in seconds to wait for a response from a IP probe.")
+	svcFlag := flag.String("service", "", "Service action.  Valid actions are: 'start', 'stop', 'restart', 'instal' and 'uninstall'")
 	flag.Parse()
 
 	// Create a new server
-	s := Server{
-		Host:           *host,
-		PortNo:         *port,
-		VerboseLogging: *verbose,
-		Timeout:        *timeout,
-		Router:         mux.NewRouter().StrictSlash(true),
-		Finder:         &gopifinder.Finder{VerboseLog: *verbose, Timeout: *timeout},
+	s := &Server{
+		PortNo:  *port,
+		Timeout: *timeout,
 	}
 
-	// Add the controllers
-	s.AddController(new(OnlineController))
-	s.AddController(new(DeviceController))
-	s.AddController(new(ServiceController))
-	s.AddController(new(StatusController))
+	// Start up the service
+	svcConfig := &service.Config{
+		Name:        "FinderService",
+		DisplayName: "FinderService",
+		Description: "Service used to find and register devices and microservice on the local LAN.",
+	}
+	v, err := service.New(s, svcConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// Start the server
-	log.Fatal(s.ListenAndServe())
+	// Set up the logger
+	errs := make(chan error, 5)
+	logger, err = v.Logger(errs)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go func() {
+		for {
+			err := <-errs
+			if err != nil {
+				log.Print(err)
+			}
+		}
+	}()
+
+	if *svcFlag != "" {
+		// Service control request
+		if err := service.Control(v, *svcFlag); err != nil {
+			e := err.Error()
+			if strings.Contains(e, "Unknown action") {
+				fmt.Println(*svcFlag, "is an invalid action.")
+				fmt.Println("Valid actions are", service.ControlAction)
+			} else {
+				fmt.Println(err.Error())
+			}
+		}
+	} else {
+		// Start the service in debug
+		s.VerboseLogging = true
+		if err := v.Run(); err != nil {
+			log.Fatal(err)
+		}
+	}
 }

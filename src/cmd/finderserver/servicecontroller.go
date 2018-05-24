@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	gopifinder "github.com/brumawen/gopi-finder/src"
@@ -16,15 +17,15 @@ type ServiceController struct {
 func (c *ServiceController) AddController(router *mux.Router, s *Server) {
 	c.Srv = s
 	router.Methods("POST").Path("/service/add").Name("AddService").
-		Handler(Logger(http.HandlerFunc(c.handleAddService)))
+		Handler(Logger(c, http.HandlerFunc(c.handleAddService)))
 	router.Methods("DELETE").Path("/service/remove/{id}/{name}").Name("RemoveService").
-		Handler(Logger(http.HandlerFunc(c.handleRemoveService)))
+		Handler(Logger(c, http.HandlerFunc(c.handleRemoveService)))
 	router.Methods("DELETE").Path("/service/remove/{id}").Name("RemoveAll").
-		Handler(Logger(http.HandlerFunc(c.handleRemoveAll)))
+		Handler(Logger(c, http.HandlerFunc(c.handleRemoveAll)))
 	router.Methods("GET").Path("/service/get").Name("GetLocalServices").
-		Handler(Logger(http.HandlerFunc(c.handleGetLocal)))
+		Handler(Logger(c, http.HandlerFunc(c.handleGetLocal)))
 	router.Methods("GET").Path("/service/search").Name("Search").
-		Handler(Logger(http.HandlerFunc(c.handleSearch)))
+		Handler(Logger(c, http.HandlerFunc(c.handleSearch)))
 
 }
 
@@ -85,4 +86,10 @@ func (c *ServiceController) handleSearch(w http.ResponseWriter, r *http.Request)
 			http.Error(w, "Error serializing Service list. "+err.Error(), 500)
 		}
 	}
+}
+
+// LogInfo is used to log information messages for this controller.
+func (c *ServiceController) LogInfo(v ...interface{}) {
+	a := fmt.Sprint(v)
+	logger.Info("ServiceController: ", a[1:len(a)-1])
 }

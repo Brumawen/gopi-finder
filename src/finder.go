@@ -8,18 +8,21 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/kardianos/service"
 )
 
 // Finder will search for and hold a list of devices available on the local network.
 type Finder struct {
-	PortNo      int
-	Devices     []DeviceInfo
-	VerboseLog  bool
-	Timeout     int
-	LastSearch  time.Time
-	ForceSearch bool
-	IsServer    bool
-	MyInfo      *DeviceInfo
+	PortNo         int            // Port number to attempt to connect to
+	Devices        []DeviceInfo   // List of discovered devices
+	VerboseLogging bool           // Switch on verbose logging
+	Timeout        int            // The timeout in seconds to wait for a response from the LAN IP probe
+	LastSearch     time.Time      // The date and time the last search was made
+	ForceSearch    bool           // Indicates if a search must occur
+	IsServer       bool           // Indicates this instance is a finder server
+	MyInfo         *DeviceInfo    // The machine's device information
+	Logger         service.Logger // The logger
 }
 
 // FindDevices searches the local LANs for devices.
@@ -36,13 +39,11 @@ func (f *Finder) FindDevices() ([]DeviceInfo, error) {
 	}
 	f.ForceSearch = false
 
-	if f.VerboseLog {
-		log.Println("FindDevices: Starting search...")
-	}
+	f.logDebug("Starting search...")
 
 	ipLst, err := GetLocalIPAddresses()
 	if err != nil {
-		return nil, errors.New("FindDevices: Error getting Local IP Addresses. " + err.Error())
+		return nil, errors.New("Error getting Local IP Addresses. " + err.Error())
 	}
 
 	c := make(chan DeviceInfo)
@@ -52,12 +53,10 @@ func (f *Finder) FindDevices() ([]DeviceInfo, error) {
 	// Start the goroutines looking for device on the networks
 	count := 0
 	for _, ip := range ipLst {
-		if f.VerboseLog {
-			log.Println("FindDevices: Searching LAN for IP Address", ip)
-		}
+		f.logDebug("FindDevices: Searching LAN for IP Address", ip)
 		scanList, err := GetPotentialAddresses(ip)
 		if err != nil {
-			return nil, errors.New("FindDevices: Error getting potential IP scan list. " + err.Error())
+			return nil, errors.New("Error getting potential IP scan list. " + err.Error())
 		}
 		for _, scanIP := range scanList {
 			count = count + 1
@@ -72,16 +71,11 @@ func (f *Finder) FindDevices() ([]DeviceInfo, error) {
 		case result := <-c:
 			f.AddDevice(result)
 		case <-timeout:
-			if f.VerboseLog {
-				log.Println("Search timed out.")
-			}
 			break
 		}
 	}
 
-	if f.VerboseLog {
-		log.Println("FindDevices: Completed search.")
-	}
+	f.logDebug("Completed search.")
 
 	f.LastSearch = time.Now()
 	return f.Devices, nil
@@ -158,9 +152,6 @@ func (f *Finder) SearchForServices() ([]ServiceInfo, error) {
 				srvList = append(srvList, r)
 			}
 		case <-timeout:
-			if f.VerboseLog {
-				log.Println("Search timed out.")
-			}
 			break
 		}
 	}
@@ -173,20 +164,14 @@ func (f *Finder) getURL(ip string, method string) string {
 }
 
 func (f *Finder) getCurrentDeviceList() ([]DeviceInfo, error) {
-	if f.VerboseLog {
-		log.Println("Getting current device list.")
-	}
+	f.logDebug("Getting current device list.")
 	if len(f.Devices) == 0 {
-		if f.VerboseLog {
-			log.Println("Local list is empty.  Searching for devices.")
-		}
+		f.logDebug("Local list is empty.  Searching for devices.")
 		return f.FindDevices()
 	}
 	// Check to see if we need to do a full search
 	if f.ForceSearch {
-		if f.VerboseLog {
-			log.Println("Force search is set.  Searching for devices.")
-		}
+		f.logDebug("Force search is set.  Searching for devices.")
 		// Send a message to each of our current devices and
 		// accept the device list from the first response back
 		c := make(chan []DeviceInfo)
@@ -206,9 +191,7 @@ func (f *Finder) getCurrentDeviceList() ([]DeviceInfo, error) {
 				f.Devices = append(f.Devices, r)
 			}
 		case <-timeout:
-			if f.VerboseLog {
-				log.Println("Search timed out.")
-			}
+			f.logDebug("Search timed out.")
 			break
 		}
 	}
@@ -247,7 +230,7 @@ func (f *Finder) checkIfOnline(ip string) DeviceInfo {
 		if response, err := client.Post(f.getURL(ip, "/online"), "application/json;charset=utf-8", b); err == nil {
 			if response.ContentLength != 0 {
 				if err := d.ReadFrom(response.Body); err != nil {
-					log.Println("Finder: Error reading Online Response from", ip, err.Error())
+					f.logError("Error reading Online Response from", ip, err.Error())
 				}
 			}
 		}
@@ -255,7 +238,7 @@ func (f *Finder) checkIfOnline(ip string) DeviceInfo {
 		if response, err := client.Get(f.getURL(ip, "/online")); err == nil {
 			if response.ContentLength != 0 {
 				if err := d.ReadFrom(response.Body); err != nil {
-					log.Println("Finder: Error reading Online Response from", ip, err.Error())
+					f.logError("Error reading Online Response from", ip, err.Error())
 				}
 			}
 		}
@@ -271,7 +254,7 @@ func (f *Finder) scanForServices(d DeviceInfo, ipNo int) []ServiceInfo {
 		if response.ContentLength != 0 {
 			siList := ServiceInfoList{}
 			if err := siList.ReadFrom(response.Body); err != nil {
-				log.Println("Finder: Error reading Service List response from", d.HostName, err.Error())
+				f.logError("Error reading Service List response from", d.HostName, err.Error())
 			} else {
 				return siList.Services
 			}
@@ -288,7 +271,7 @@ func (f *Finder) scanForDevices(d DeviceInfo, ipNo int) []DeviceInfo {
 		if response.ContentLength != 0 {
 			diList := DeviceInfoList{}
 			if err := diList.ReadFrom(response.Body); err != nil {
-				log.Println("Finder: Error reading Device List response from", d.HostName, err.Error())
+				f.logError("Error reading Device List response from", d.HostName, err.Error())
 			} else {
 				return diList.Devices
 			}
@@ -308,4 +291,24 @@ func (f *Finder) registerServices(d DeviceInfo, ipNo int, sl []ServiceInfo) erro
 		return err
 	}
 	return nil
+}
+
+func (f *Finder) logDebug(v ...interface{}) {
+	if f.VerboseLogging {
+		a := fmt.Sprint(v)
+		if f.Logger == nil {
+			log.Println(a[1 : len(a)-1])
+		} else {
+			f.Logger.Info("Finder: ", a[1:len(a)-1])
+		}
+	}
+}
+
+func (f *Finder) logError(v ...interface{}) {
+	a := fmt.Sprint(v)
+	if f.Logger == nil {
+		log.Println(a[1 : len(a)-1])
+	} else {
+		f.Logger.Error("Finder: ", a[1:len(a)-1])
+	}
 }
