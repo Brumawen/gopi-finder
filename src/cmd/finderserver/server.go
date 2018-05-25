@@ -14,8 +14,8 @@ import (
 
 // Server defines the Web Server.
 type Server struct {
-	PortNo         int                      // Port Number to listen on
-	VerboseLogging bool                     // Switch on verbose logging
+	PortNo         int                      // Port Number the server will listen on
+	VerboseLogging bool                     // Verbose logging on/ off
 	Timeout        int                      // Timeout in seconds to wait for a LAN probe response
 	Devices        []gopifinder.DeviceInfo  //List of registers services
 	Services       []gopifinder.ServiceInfo // List of registered devices

@@ -23,11 +23,11 @@ func main() {
 		Timeout: *timeout,
 	}
 
-	// Start up the service
+	// Create the service
 	svcConfig := &service.Config{
 		Name:        "FinderService",
-		DisplayName: "FinderService",
-		Description: "Service used to find and register devices and microservice on the local LAN.",
+		DisplayName: "Finder Service",
+		Description: "Used to find and register devices and microservice on the local LAN.",
 	}
 	v, err := service.New(s, svcConfig)
 	if err != nil {
@@ -61,8 +61,8 @@ func main() {
 			}
 		}
 	} else {
-		// Start the service in debug
-		s.VerboseLogging = true
+		// Start the service in debug if we are running in a terminal
+		s.VerboseLogging = service.Interactive()
 		if err := v.Run(); err != nil {
 			log.Fatal(err)
 		}
