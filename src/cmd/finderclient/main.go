@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/brumawen/gopi-finder/src"
 )
@@ -24,6 +25,8 @@ func main() {
 	var d []gopifinder.DeviceInfo
 	var s []gopifinder.ServiceInfo
 	var err error
+
+	start := time.Now()
 
 	f := gopifinder.Finder{
 		VerboseLogging: *verbose,
@@ -52,7 +55,9 @@ func main() {
 		if i, err := gopifinder.NewDeviceInfo(); err != nil {
 			fmt.Println(err)
 		} else {
-			if *ip != "" {
+			if *ip == "" {
+				i.IPAddress = []string{"localhost"}
+			} else {
 				i.IPAddress = []string{*ip}
 			}
 			if *port > 0 {
@@ -78,9 +83,9 @@ func main() {
 	if len(d) != 0 {
 		for _, i := range d {
 			if *all {
-				fmt.Println(i.HostName, i.MachineID, i.OS, i.IPAddress)
+				fmt.Printf("%s\t%s\t%s\t%s\n", i.HostName, i.MachineID, i.OS, i.IPAddress)
 			} else {
-				fmt.Println(i.HostName, i.IPAddress)
+				fmt.Printf("%s\t%s\n", i.HostName, i.IPAddress)
 			}
 		}
 		if *verbose {
@@ -91,13 +96,17 @@ func main() {
 	if len(s) != 0 {
 		for _, i := range s {
 			if *all {
-				fmt.Println(i.MachineID, i.HostName, i.IPAddress, i.PortNo, i.ServiceName, i.APIStub)
+				fmt.Printf("%s\t%s\t%s\t%d\t%s\t%s\n", i.HostName, i.ServiceName, i.IPAddress, i.PortNo, i.APIStub, i.MachineID)
 			} else {
-				fmt.Println(i.MachineID, i.ServiceName, i.APIStub)
+				fmt.Printf("%s\t%s\t%s\t%d\t%s\n", i.HostName, i.ServiceName, i.IPAddress, i.PortNo, i.APIStub)
 			}
 		}
 		if *verbose {
 			fmt.Println("Found", len(s), "Service(s).")
 		}
+	}
+
+	if *verbose {
+		fmt.Println("Completed in", time.Since(start).Seconds(), "sec")
 	}
 }

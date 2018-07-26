@@ -27,7 +27,7 @@ func main() {
 	svcConfig := &service.Config{
 		Name:        "FinderService",
 		DisplayName: "Finder Service",
-		Description: "Used to find and register devices and microservice on the local LAN.",
+		Description: "Finds and registerd devices and micro-services on the local LAN.",
 	}
 	v, err := service.New(s, svcConfig)
 	if err != nil {

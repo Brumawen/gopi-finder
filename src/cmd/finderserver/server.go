@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,6 +23,7 @@ type Server struct {
 	Services       []gopifinder.ServiceInfo // List of registered devices
 	Finder         *gopifinder.Finder       // Finder client
 	exit           chan struct{}            // Exit flag
+	shutdown       chan struct{}            // Shutdown complete flag
 	http           *http.Server             // HTTP server
 	router         *mux.Router              // HTTP router
 }
@@ -28,6 +31,26 @@ type Server struct {
 // Start is called when the service is starting
 func (s *Server) Start(v service.Service) error {
 	s.logInfo("Service starting")
+
+	// Make sure the working directory is the same as the application exe
+	ap, err := os.Executable()
+	if err != nil {
+		s.logError("Error getting the executable path.", err.Error())
+	} else {
+		wd, err := os.Getwd()
+		if err != nil {
+			s.logError("Error getting current working directory.", err.Error())
+		} else {
+			ad := filepath.Dir(ap)
+			s.logInfo("Current application path is", ad)
+			if ad != wd {
+				if err := os.Chdir(ad); err != nil {
+					s.logError("Error chaning working directory.", err.Error())
+				}
+			}
+		}
+	}
+
 	// Create a channel that will be used to block until the Stop signal is received
 	s.exit = make(chan struct{})
 	go s.run()
@@ -38,7 +61,10 @@ func (s *Server) Start(v service.Service) error {
 func (s *Server) Stop(v service.Service) error {
 	s.logInfo("Service stopping")
 	// Close the channel, this will automatically release the block
+	s.shutdown = make(chan struct{})
 	close(s.exit)
+	// Wait for the shutdown to complete
+	_ = <-s.shutdown
 	return nil
 }
 
@@ -47,6 +73,9 @@ func (s *Server) run() {
 	if s.PortNo < 0 {
 		s.PortNo = 20502
 	}
+	s.Finder.Logger = logger
+	s.Finder.VerboseLogging = service.Interactive()
+
 	s.logInfo("Server listening on port", s.PortNo)
 
 	// Create a router
@@ -57,6 +86,7 @@ func (s *Server) run() {
 	s.AddController(new(DeviceController))
 	s.AddController(new(ServiceController))
 	s.AddController(new(StatusController))
+	s.AddController(new(LogController))
 
 	// Get our device info
 	s.Finder = &gopifinder.Finder{
@@ -95,6 +125,9 @@ func (s *Server) run() {
 
 	// Shutdown
 	s.http.Shutdown(nil)
+
+	s.logDebug("Shutdown complete")
+	close(s.shutdown)
 }
 
 // AddController adds the specified web service controller to the Router
@@ -124,7 +157,7 @@ func (s *Server) ScanForDevices() {
 					isUp = true
 				}
 			} else {
-				time.Sleep(5 * time.Second)
+				time.Sleep(15 * time.Second)
 			}
 		}
 	}

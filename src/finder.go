@@ -48,7 +48,7 @@ func (f *Finder) FindDevices() ([]DeviceInfo, error) {
 
 	c := make(chan DeviceInfo)
 
-	timeout := time.After(time.Duration(f.Timeout) * time.Second)
+	timeout := time.After(time.Duration(f.Timeout*5) * time.Second)
 
 	// Start the goroutines looking for device on the networks
 	count := 0
