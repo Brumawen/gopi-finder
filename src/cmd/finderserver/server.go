@@ -73,8 +73,6 @@ func (s *Server) run() {
 	if s.PortNo < 0 {
 		s.PortNo = 20502
 	}
-	s.Finder.Logger = logger
-	s.Finder.VerboseLogging = service.Interactive()
 
 	s.logInfo("Server listening on port", s.PortNo)
 
