@@ -11,3 +11,9 @@ func TestCanGetLocalIPAddresses(t *testing.T) {
 		t.Error("No IP addresses returned.")
 	}
 }
+
+func TestCanCheckIfInternetIsOnline(t *testing.T) {
+	if !IsInternetOnline() {
+		t.Error("Internet is not online")
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
 	"os"
 
 	uuid "github.com/satori/go.uuid"
@@ -90,4 +91,17 @@ func GetPotentialAddresses(ip string) ([]string, error) {
 		}
 	}
 	return l, nil
+}
+
+// IsInternetOnline returns whether or not the machine is connected to the internet.
+func IsInternetOnline() bool {
+	resp, err := http.Get("http://www.msftncsi.com/ncsi.txt")
+	if err != nil {
+		return false
+	}
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return false
+	}
+	return string(b) == "Microsoft NCSI"
 }
