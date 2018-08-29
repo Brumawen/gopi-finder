@@ -295,6 +295,8 @@ func getHardwareType(code string) string {
 		return "Raspberry Pi Zero"
 	case "a02082", "a22082":
 		return "Raspberry Pi 3B"
+	case "a020d3":
+		return "Raspberry Pi 3B+"
 	case "9000c1":
 		return "Raspberry Pi Zero W"
 	default:
