@@ -23,7 +23,7 @@ type DeviceStatus struct {
 	HWSerialNo   string    `json:"hwSerialNo"`   // Hardware SerialNo
 	CPUTemp      float64   `json:"cpuTemp"`      // CPU temperature in Celcius
 	GPUTemp      float64   `json:"gpuTemp"`      // GPU temperature in Celcius
-	IsThrottled  bool      `json:"isThrottled`   // If CPU is currently throttled
+	IsThrottled  bool      `json:"isThrottled"`  // If CPU is currently throttled
 	FreeDisk     int64     `json:"freeDisk"`     // Free Disk Space in bytes
 	FreeDiskPerc int       `json:"freeDiskPerc"` // Free Disk Space in percentage
 	AvailMem     int64     `json:"availMem"`     // Available Memory in bytes
@@ -297,20 +297,26 @@ func getHardwareType(code string) string {
 		return "Raspberry Pi B rev 2.0"
 	case "0007", "0008", "0009":
 		return "Raspberry Pi A"
-	case "0010":
+	case "0010", "0013":
 		return "Raspberry Pi B+"
 	case "0011":
 		return "Raspberry Pi Compute Module"
-	case "0012":
+	case "0012", "0015":
 		return "Raspberry Pi A+"
 	case "a01041", "a21041":
 		return "Raspberry Pi 2B"
 	case "900092", "900093":
 		return "Raspberry Pi Zero"
-	case "a02082", "a22082":
+	case "a02082", "a22082", "a32082", "a52082", "a22083":
 		return "Raspberry Pi 3B"
 	case "a020d3":
 		return "Raspberry Pi 3B+"
+	case "a03111":
+		return "Raspberry Pi 4 1Gb"
+	case "b03111":
+		return "Raspberry Pi 4 2Gb"
+	case "c03111":
+		return "Raspberry Pi 4 4Gb"
 	case "9000c1":
 		return "Raspberry Pi Zero W"
 	default:
