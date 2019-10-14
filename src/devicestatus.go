@@ -23,6 +23,7 @@ type DeviceStatus struct {
 	HWSerialNo   string    `json:"hwSerialNo"`   // Hardware SerialNo
 	CPUTemp      float64   `json:"cpuTemp"`      // CPU temperature in Celcius
 	GPUTemp      float64   `json:"gpuTemp"`      // GPU temperature in Celcius
+	IsThrottled  bool      `json:"isThrottled`   // If CPU is currently throttled
 	FreeDisk     int64     `json:"freeDisk"`     // Free Disk Space in bytes
 	FreeDiskPerc int       `json:"freeDiskPerc"` // Free Disk Space in percentage
 	AvailMem     int64     `json:"availMem"`     // Available Memory in bytes
@@ -119,6 +120,19 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 		return errors.New("Error parsing GPU temperature. " + err.Error())
 	}
 	d.GPUTemp = v
+
+	//get throttled status
+	out, err = exec.Command("/opt/vc/bin/vcgencmd", "get_throttled").Output()
+	if err != nil {
+		return errors.New("Error getting Throttled state. " + err.Error())
+	}
+	txt = string(out)
+	txt = txt[11 : len(txt)-1]
+	u, err := strconv.ParseUint(txt, 16, 64)
+	if err != nil {
+		return errors.New("Error parsing Throttled State. " + err.Error())
+	}
+	d.IsThrottled = (u&2 == 2)
 
 	//get disk space
 	re = regexp.MustCompile("/dev/root\\s*(\\d*)\\s*(\\d*)\\s*(\\d*)\\s*(\\d*)%")
