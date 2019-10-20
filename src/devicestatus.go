@@ -152,7 +152,7 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 		if err != nil {
 			return errors.New("Error parsing Disk percentage. " + err.Error())
 		}
-		d.DiskUsedPerc = 100 - n
+		d.DiskUsedPerc = 
 	}
 
 	//get available memory
