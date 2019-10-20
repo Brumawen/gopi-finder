@@ -146,13 +146,13 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 		if err != nil {
 			return errors.New("Error parsing Disk space. " + err.Error())
 		}
-		d.FreeDisk = v
+		d.DiskUsed = v
 
 		n, err := strconv.Atoi(m[4])
 		if err != nil {
 			return errors.New("Error parsing Disk percentage. " + err.Error())
 		}
-		d.FreeDiskPerc = 100 - n
+		d.DiskUsedPerc = 100 - n
 	}
 
 	//get available memory
@@ -234,11 +234,11 @@ func (d *DeviceStatus) loadValuesForWindows() error {
 	arr = strings.Split(strings.TrimSpace(string(out)), "\n")
 	for _, i := range arr {
 		if strings.HasPrefix(i, "FreeSpace=") {
-			d.FreeDisk = ConvToInt64(i[10:], 0)
+			d.DiskUsed = ConvToInt64(i[10:], 0)
 		}
 		if strings.HasPrefix(i, "Size=") {
 			n := ConvToInt64(i[5:], 0)
-			d.FreeDiskPerc = int(float64(d.FreeDisk) / float64(n) * float64(100))
+			d.DiskUsedPerc = int(float64(d.DiskUsed) / float64(n) * float64(100))
 			break
 		}
 	}
