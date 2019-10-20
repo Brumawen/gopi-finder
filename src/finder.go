@@ -295,7 +295,7 @@ func (f *Finder) registerServices(d DeviceInfo, ipNo int, sl []ServiceInfo) erro
 
 func (f *Finder) logDebug(v ...interface{}) {
 	if f.VerboseLogging {
-		a := fmt.Sprint(v)
+		a := fmt.Sprint(v...)
 		if f.Logger == nil {
 			log.Println(a[1 : len(a)-1])
 		} else {
@@ -305,7 +305,7 @@ func (f *Finder) logDebug(v ...interface{}) {
 }
 
 func (f *Finder) logError(v ...interface{}) {
-	a := fmt.Sprint(v)
+	a := fmt.Sprint(v...)
 	if f.Logger == nil {
 		log.Println(a[1 : len(a)-1])
 	} else {
