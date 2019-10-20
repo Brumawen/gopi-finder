@@ -127,7 +127,7 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 		return errors.New("Error getting Throttled state. " + err.Error())
 	}
 	txt = string(out)
-	txt = txt[11 : len(txt)-1]
+	txt = txt[12 : len(txt)-1]
 	u, err := strconv.ParseUint(txt, 16, 64)
 	if err != nil {
 		return errors.New("Error parsing Throttled State. " + err.Error())
