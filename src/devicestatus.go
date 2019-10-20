@@ -24,8 +24,8 @@ type DeviceStatus struct {
 	CPUTemp      float64   `json:"cpuTemp"`      // CPU temperature in Celcius
 	GPUTemp      float64   `json:"gpuTemp"`      // GPU temperature in Celcius
 	IsThrottled  bool      `json:"isThrottled"`  // If CPU is currently throttled
-	FreeDisk     int64     `json:"freeDisk"`     // Free Disk Space in bytes
-	FreeDiskPerc int       `json:"freeDiskPerc"` // Free Disk Space in percentage
+	DiskUsed     int64     `json:"freeDisk"`     // Disk Used Space in bytes
+	DiskUsedPerc int       `json:"freeDiskPerc"` // Disk Used Space in percentage
 	AvailMem     int64     `json:"availMem"`     // Available Memory in bytes
 	Uptime       int       `json:"uptime"`       // CPU uptime in seconds
 	Created      time.Time `json:"created"`      // The date and time the status was created
@@ -152,7 +152,7 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 		if err != nil {
 			return errors.New("Error parsing Disk percentage. " + err.Error())
 		}
-		d.FreeDiskPerc = n
+		d.FreeDiskPerc = 100 - n
 	}
 
 	//get available memory
