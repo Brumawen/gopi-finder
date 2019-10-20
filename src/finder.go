@@ -297,9 +297,9 @@ func (f *Finder) logDebug(v ...interface{}) {
 	if f.VerboseLogging {
 		a := fmt.Sprint(v...)
 		if f.Logger == nil {
-			log.Println(a[1 : len(a)-1])
+			log.Println(a)
 		} else {
-			f.Logger.Info("Finder: ", a[1:len(a)-1])
+			f.Logger.Info("Finder: ", a)
 		}
 	}
 }
@@ -307,8 +307,8 @@ func (f *Finder) logDebug(v ...interface{}) {
 func (f *Finder) logError(v ...interface{}) {
 	a := fmt.Sprint(v...)
 	if f.Logger == nil {
-		log.Println(a[1 : len(a)-1])
+		log.Println(a)
 	} else {
-		f.Logger.Error("Finder: ", a[1:len(a)-1])
+		f.Logger.Error("Finder: ", a)
 	}
 }
