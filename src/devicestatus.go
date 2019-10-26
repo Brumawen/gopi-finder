@@ -26,6 +26,7 @@ type DeviceStatus struct {
 	IsThrottled  bool      `json:"isThrottled"`  // If CPU is currently throttled
 	DiskUsed     int64     `json:"freeDisk"`     // Disk Used Space in bytes
 	DiskUsedPerc int       `json:"freeDiskPerc"` // Disk Used Space in percentage
+	TotalMem     int64     `json:"totalMem"`     // Total Memory in bytes
 	AvailMem     int64     `json:"availMem"`     // Available Memory in bytes
 	Uptime       int       `json:"uptime"`       // CPU uptime in seconds
 	Created      time.Time `json:"created"`      // The date and time the status was created
@@ -157,6 +158,7 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 
 	//get available memory
 	re = regexp.MustCompile("MemAvailable:\\s*(\\d*)")
+	re1 = regexp.MustCompile("MemTotal:\\s*(\\d*)")
 	txt, err = ReadAllText("/proc/meminfo")
 	if err != nil {
 		return errors.New("Error getting available memory. " + err.Error())
@@ -168,7 +170,14 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 			return errors.New("Error parsing available memory. " + err.Error())
 		}
 		d.AvailMem = v
-
+	}
+	m = re1.FindStringSubmatch(txt)
+	if len(m) >= 2 {
+		v, err := strconv.ParseInt(m[1], 10, 64)
+		if err != nil {
+			return errors.New("Error parsing totoal memory. " + err.Error())
+		}
+		d.TotalMem = v
 	}
 
 	//get uptime
