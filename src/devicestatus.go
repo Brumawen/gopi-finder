@@ -136,7 +136,7 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 	d.IsThrottled = (u&2 == 2)
 
 	//get disk space
-	re = regexp.MustCompile("/dev/root\\s*(\\d*)\\s*(\\d*)\\s*(\\d*)\\s*(\\d*)%")
+	re = regexp.MustCompile("/dev/[\\w]+\\s*(\\d*)\\s*(\\d*)\\s*(\\d*)\\s*(\\d*)%\\s+/\\n")
 	out, err = exec.Command("df").Output()
 	if err != nil {
 		return errors.New("Error getting Disk space. " + err.Error())
