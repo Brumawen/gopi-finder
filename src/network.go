@@ -15,33 +15,27 @@ func GetClientID() (string, error) {
 	fn := "clientid" // File Name
 	if _, err := os.Stat(fn); os.IsNotExist(err) {
 		// File does not exists, create a new uuid
-		if uuid, err := uuid.NewV4(); err != nil {
-			log.Println("Error creating GUID. " + err.Error())
-		} else {
-			uuidStr := uuid.String()
-			log.Println("Created new Client ID.", uuidStr)
-			err = ioutil.WriteFile(fn, []byte(uuidStr), 0666)
-			if err != nil {
-				return uuidStr, err
-			}
-			return uuidStr, nil
+		uuid := uuid.NewV4()
+		uuidStr := uuid.String()
+		log.Println("Created new Client ID.", uuidStr)
+		err = ioutil.WriteFile(fn, []byte(uuidStr), 0666)
+		if err != nil {
+			return uuidStr, err
 		}
+		return uuidStr, nil
 	}
 	// Read the uuid from the file
 	data, err := ioutil.ReadFile(fn)
 	if err != nil {
 		log.Println("Failed to read the Client ID file. Attempting to recreate it.", err)
-		if uuid, err := uuid.NewV4(); err != nil {
-			log.Println("Error generating GUID. " + err.Error())
-		} else {
-			uuidStr := uuid.String()
-			log.Println("Created new Client ID.", uuidStr)
-			err = ioutil.WriteFile(fn, []byte(uuidStr), 0666)
-			if err != nil {
-				return uuidStr, err
-			}
-			return uuidStr, nil
+		uuid := uuid.NewV4()
+		uuidStr := uuid.String()
+		log.Println("Created new Client ID.", uuidStr)
+		err = ioutil.WriteFile(fn, []byte(uuidStr), 0666)
+		if err != nil {
+			return uuidStr, err
 		}
+		return uuidStr, nil
 	}
 	return string(data), nil
 }
