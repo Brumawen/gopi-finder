@@ -1,4 +1,4 @@
-module github.com/brumawen/gopi-finder
+module github.com/brumawen/gopi-finder/src
 
 go 1.20
 
