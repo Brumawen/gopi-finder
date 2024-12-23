@@ -110,7 +110,7 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 	d.CPUTemp = v / 1000
 
 	//get gpu temperature
-	out, err := exec.Command("/opt/vc/bin/vcgencmd", "measure_temp").Output()
+	out, err := exec.Command("vcgencmd", "measure_temp").Output()
 	if err != nil {
 		return errors.New("Error getting GPU temperature. " + err.Error())
 	}
@@ -123,7 +123,7 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 	d.GPUTemp = v
 
 	//get throttled status
-	out, err = exec.Command("/opt/vc/bin/vcgencmd", "get_throttled").Output()
+	out, err = exec.Command("vcgencmd", "get_throttled").Output()
 	if err != nil {
 		return errors.New("Error getting Throttled state. " + err.Error())
 	}
