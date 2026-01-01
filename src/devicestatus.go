@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -109,8 +110,14 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 	}
 	d.CPUTemp = v / 1000
 
+	// Find vcgencmd path (used for both GPU temperature and throttled status)
+	vcgencmd, err := findVcgencmd()
+	if err != nil {
+		return errors.New("Error finding vcgencmd. " + err.Error())
+	}
+
 	//get gpu temperature
-	out, err := exec.Command("vcgencmd", "measure_temp").Output()
+	out, err := exec.Command(vcgencmd, "measure_temp").Output()
 	if err != nil {
 		return errors.New("Error getting GPU temperature. " + err.Error())
 	}
@@ -123,7 +130,7 @@ func (d *DeviceStatus) loadValuesForLinux() error {
 	d.GPUTemp = v
 
 	//get throttled status
-	out, err = exec.Command("vcgencmd", "get_throttled").Output()
+	out, err = exec.Command(vcgencmd, "get_throttled").Output()
 	if err != nil {
 		return errors.New("Error getting Throttled state. " + err.Error())
 	}
@@ -296,6 +303,28 @@ func (d *DeviceStatus) Deserialize(v string) error {
 		return err
 	}
 	return nil
+}
+
+// findVcgencmd finds the vcgencmd executable in common locations
+func findVcgencmd() (string, error) {
+	// First try to find it in PATH
+	if path, err := exec.LookPath("vcgencmd"); err == nil {
+		return path, nil
+	}
+
+	// Try common installation paths
+	commonPaths := []string{
+		"/usr/bin/vcgencmd",      // New Raspberry Pi OS (Bullseye+)
+		"/opt/vc/bin/vcgencmd",   // Old Raspberry Pi OS
+	}
+
+	for _, path := range commonPaths {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+
+	return "", errors.New("vcgencmd not found in PATH or common locations")
 }
 
 func getHardwareType(code string) string {
